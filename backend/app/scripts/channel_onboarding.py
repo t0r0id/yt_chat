@@ -3,6 +3,7 @@ import logging
 from typing import List
 
 import youtubesearchpython as yps
+from youtube_transcript_api import YouTubeTranscriptApi
 
 from app.db.models import (Video
                         , Channel
@@ -26,35 +27,37 @@ def get_channel_videos(channel: Channel) -> List[Video]:
         List[Video]: A list of Video objects from the specified channel.
     """
     try:
-        playlist = yps.Playlist(yps.playlist_from_channel_id(channel.channel_id))
+        playlist = yps.Playlist(yps.playlist_from_channel_id(channel.id))
         while playlist.hasMoreVideos:
             playlist.getNextVideos()
     except Exception as e:
-        logger.error(f"Failed to retrieve videos for channel: {channel.channel_id}")
+        logger.error(f"Failed to retrieve videos for channel: {channel.id}")
         raise e
     
     if not playlist.videos:
-        logger.info("No videos found for channel: %s", channel.channel_id)
+        logger.info("No videos found for channel: %s", channel.id)
         return []
 
-    logger.info("Retrieved %d videos for channel: %s", len(playlist.videos), channel.channel_id)
-    videos = [Video(video_id=video['id'],
+    logger.info("Retrieved %d videos for channel: %s", len(playlist.videos), channel.id)
+    videos = [Video(id=video['id'],
                     title=video['title'],
                     channel=channel,
                     )
                 for video in playlist.videos]
 
     for video in videos:
-        video_url = f"https://www.youtube.com/watch?v={video.video_id}"
         try:
+            #TODO: Enable loading translated transcripts
             video.transcript = [TranscriptSegment(text=segment['text'],
-                                                start_ms=segment['startMs'],
-                                                end_ms=segment['endMs'])
-                                for segment in yps.Transcript.get(video_url).segments]
+                                                start_ms=int(segment['start']*1000),
+                                                end_ms=int((segment['start']
+                                                            + segment['duration'])*1000))
+                                for segment in 
+                                YouTubeTranscriptApi.get_transcript(video.id, languages=['en'])]
         except Exception as e:
-            logger.info(f"Failed to retrieve transcript for video: {video_url}")
+            logger.error(f"Failed to retrieve transcript for video: {video.id}")
 
-    return videos
+    return [video for video in videos if video.transcript]
         
 
 async def process_onboarding_request(request_id: str) -> bool:
@@ -71,23 +74,24 @@ async def process_onboarding_request(request_id: str) -> bool:
     request = await ChannelOnBoardingRequest.get(request_id)
 
     if not request:
-        logger.info(f"Onboarding request ({request_id}) not found")
+        logger.error(f"Onboarding request ({request_id}) not found")
         return False
 
-    if request.status !=  ChannelOnBoardingRequestStatus.QUEUED:
-        logger.info(f"Onboarding request ({request.id}) is not in the QUEUED state. Request status: {request.status}")
+    if request.status != ChannelOnBoardingRequestStatus.QUEUED:
+        logger.error(f"Onboarding request ({request.id}) is not in the QUEUED state. Request status: {request.status}")
         return False
     
-    if Channel.find_one(Channel.channel_id == request.channel_id):
+    if await Channel.find_one(Channel.id == request.channel_id):
         logger.info(f"Channel ({request.channel_id}) has already been onboarded: Request_id:{request_id}")
+        return True
 
     logger.info(f"Onboarding request ({request.id}) is in the QUEUED state. Request status: {request.status}")
     request.status = ChannelOnBoardingRequestStatus.PROCESSING
-    request.save()
+    await request.save()
 
     try:
         channel_info = yps.Channel.get(request.channel_id)
-        channel = Channel(channel_id = channel_info['id']
+        channel = Channel(id = channel_info['id']
                           , title = channel_info['title']
                           , description = channel_info['description']
                           , url = channel_info['url']
@@ -96,22 +100,38 @@ async def process_onboarding_request(request_id: str) -> bool:
                           )
         
         videos = get_channel_videos(channel)
-        await channel.insert()
-        await Video.insert_many(videos)
+        if videos:
+            await channel.save()
+            await Video.insert_many(videos)
 
-        #TODO: Add logic to upsert channel and videos to db
+        #TODO: Add logic for creating veector embeddings
 
-        request.status = ChannelOnBoardingRequestStatus.COMPLETED
-        request.save()
-        return True
+            request.status = ChannelOnBoardingRequestStatus.COMPLETED
+            await request.save()
+            return True
+
+        request.status = ChannelOnBoardingRequestStatus.FAILED
+        await request.save()
+        return False
     except Exception as e:
         logger.error(f"Failed to onboard channel: {request.channel_id}")
         request.status = ChannelOnBoardingRequestStatus.FAILED
-        request.save()
+        await request.save()
         print(e)
         return False
     
 async def create_onboarding_request(channel_id: str, requested_by: str) -> bool:
+    """
+    Asynchronously creates an onboarding request for a specific channel.
+
+    Args:
+        channel_id (str): The ID of the channel for which the onboarding request is being created.
+        requested_by (str): The user who is requesting the onboarding.
+
+    Returns:
+        bool: The ID of the created onboarding request.
+    """
+    #TODO: Add error handling
     request = ChannelOnBoardingRequest(channel_id = channel_id
                                       , requested_by = requested_by
                                       , status = ChannelOnBoardingRequestStatus.PENDING

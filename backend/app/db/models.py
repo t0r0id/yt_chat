@@ -26,7 +26,7 @@ class ChannelStatus(Enum):
     INACTIVE = 'Inactive'
 
 class Channel(Document, Base):
-    channel_id: Indexed(str, unique=True, index_type=pymongo.TEXT) = Field(None, description='Unique YT channel id')
+    id: Indexed(str) = Field(..., description='Unique YT channel id')
     title: str = Field(None, description="Title of the channel")
     description: Optional[str] = Field(None, description="Description of the channel")
     url: HttpUrl = Field(None, description="URL of the channel")
@@ -42,7 +42,7 @@ class TranscriptSegment(BaseModel):
     chapter: Optional[str] = Field(None, description="Chapter of the transcript")
 
 class Video(Document, Base):
-    video_id: Indexed(str, unique=True) = Field(None, description="Unique identifier")
+    id: Indexed(str) = Field(..., description="Unique identifier")
     title: str = Field(None, description="Title of the video")
     channel: Link[Channel] = Field(None, description="Channel of the video")
     transcript: List[TranscriptSegment] = Field(None, description="Transcript of the video")
@@ -59,7 +59,7 @@ class ChannelOnBoardingRequestStatus(Enum):
 
     
 class ChannelOnBoardingRequest(Document, Base):
-    channel_id: str = Field(None, description="Unique YT channel id")
+    channel_id: str = Field(..., description="Unique YT channel id")
     requested_by: Optional[str] = Field(None, description="Requested by user id")
     status: ChannelOnBoardingRequestStatus = Field(ChannelOnBoardingRequestStatus.PENDING, description="Status of the request")
     class Settings:
