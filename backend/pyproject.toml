@@ -3,7 +3,6 @@ name = "yt-chat-backend"
 version = "0.1.0"
 description = "Backed to chat with any YT channel"
 authors = ["t0r0id <bhoumiks5910@gmail.com>"]
-readme = "README.md"
 packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
@@ -12,6 +11,9 @@ fastapi = "^0.109.0"
 uvicorn = "^0.27.0.post1"
 pydantic = "^2.6.0"
 llama-index = "^0.9.41"
+youtube-search-python = "^1.6.6"
+beanie = "^1.25.0"
+python-dotenv = "^1.0.1"
 
 [tool.poetry.scripts]
 start = "app.main:app"
