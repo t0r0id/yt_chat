@@ -1,8 +1,12 @@
+from app.db.models import Channel, ChannelStatus
 from fastapi import FastAPI
-from app.db.db import init_db
+from app.db.db import MongoDBClientSingleton, init_db
 from contextlib import asynccontextmanager
+from llama_index import VectorStoreIndex
 import uvicorn
-from app.scripts.channel_onboarding import process_onboarding_request, create_onboarding_request
+from app.onboarding.engine import process_onboarding_request, create_onboarding_request
+from llama_index.vector_stores.mongodb import MongoDBAtlasVectorSearch
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -51,11 +55,52 @@ async def onboard_request(request_id: str) -> dict:
     """
     #TODO: Add error handling
     #TODO: Restrict access only to admins
-    success = await process_onboarding_request(request_id)
+    await process_onboarding_request(request_id)
     return {
        "message": f"Onboarding request successfully processed!",
        "request_id": request_id
     }
+
+@app.post("/query")
+async def query(query: str, channel_id: str) -> dict:
+   """
+   Asynchronous function for querying a channel with the provided query and channel_id.
+
+   Args:
+       query (str): The query string for the search.
+       channel_id (str): The ID of the channel to be queried.
+
+   Returns:
+       dict: A dictionary containing the response from the query.
+   """
+   #TODO: Add error handling 
+   # Find the channel based on the provided channel_id
+   channel = await Channel.find_one(Channel.id == channel_id)
+
+   # Check if the channel is not found or not active
+   if not channel or not channel.status == ChannelStatus.ACTIVE:
+       return {"message": "Channel not found"}
+
+   # Get the MongoDB client instance
+   mongo_client = MongoDBClientSingleton.get_instance().sync_client
+
+   # Create an instance of MongoDBAtlasVectorSearch
+   vector_store = MongoDBAtlasVectorSearch(mongo_client,
+                                           db_name=os.environ['DB_NAME'],
+                                           collection_name=os.environ['VECTOR_STORE_COLLECTION_NAME'],
+                                           index_name=os.environ['VECTOR_STORE_INDEX_NAME'])
+
+   # Create an index from the vector store
+   index = VectorStoreIndex.from_vector_store(vector_store, filter={'channel_id': channel_id})
+
+   # Create a query engine from the index
+   query_engine = index.as_query_engine()
+
+   # Query the channel and get the response
+   response = query_engine.query(query)
+
+   # Return the response in a dictionary
+   return {"response": response.response}
 
 
 if __name__ == "__main__":
