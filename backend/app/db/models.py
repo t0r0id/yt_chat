@@ -31,7 +31,7 @@ class Channel(Document, Base):
     description: Optional[str] = Field(None, description="Description of the channel")
     url: HttpUrl = Field(None, description="URL of the channel")
     thumbnails: Optional[List[Thumbnail]] = Field(None, description="Thumbnails of the channel")
-    channel_status: ChannelStatus = Field(ChannelStatus.INACTIVE, description="Status of the channel")
+    status: ChannelStatus = Field(ChannelStatus.INACTIVE, description="Status of the channel")
     class Settings:
         name = "channels"
 
@@ -41,13 +41,11 @@ class TranscriptSegment(BaseModel):
     end_ms: int = Field(None, description="End time in ms of the transcript")
     chapter: Optional[str] = Field(None, description="Chapter of the transcript")
 
-class Video(Document, Base):
-    id: Indexed(str) = Field(..., description="Unique identifier")
+class Video(Base):
+    id: str = Field(..., description="Unique identifier")
     title: str = Field(None, description="Title of the video")
     channel: Link[Channel] = Field(None, description="Channel of the video")
     transcript: List[TranscriptSegment] = Field(None, description="Transcript of the video")
-    class Settings:
-        name = "videos"
 
 class ChannelOnBoardingRequestStatus(Enum):
     PENDING = 'Pending'
