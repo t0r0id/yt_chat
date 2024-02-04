@@ -5,8 +5,7 @@ from typing import List
 from app.db.db import MongoDBClientSingleton
 from app.onboarding.reader import YTTranscriptReader
 
-import youtubesearchpython as yps
-from youtube_transcript_api import YouTubeTranscriptApi
+from app.onboarding import yt 
 from llama_index import ServiceContext, StorageContext, VectorStoreIndex
 from llama_index.vector_stores.mongodb import MongoDBAtlasVectorSearch
 from app.db.models import (Video
@@ -30,40 +29,27 @@ def get_channel_videos(channel: Channel) -> List[Video]:
     Returns:
         List[Video]: A list of Video objects from the specified channel.
     """
-    # Retrieve the playlist for the given channel
     try:
-        playlist = yps.Playlist(yps.playlist_from_channel_id(channel.id))
-        # Keep fetching videos until there are no more left in the playlist
-        while playlist.hasMoreVideos:
-            playlist.getNextVideos()
-    except Exception as e:
-        # Log an error if videos retrieval fails and re-raise the exception
-        logger.error(f"Failed to retrieve videos for channel: {channel.id}")
-        raise e
-    
-    # If no videos are found, log a message and return an empty list
-    if not playlist.videos:
-        logger.info("No videos found for channel: %s", channel.id)
-        return []
-
+        video_info_list = yt.get_channel_videos(channel.id)
+    except Exception:
+        raise ValueError("Failed to retrieve channel videos.")
     # Log the number of retrieved videos and create Video objects
-    logger.info("Retrieved %d videos for channel: %s", len(playlist.videos), channel.id)
+    logger.info("Retrieved %d videos for channel: %s", len(video_info_list), channel.id)
     videos = [Video(id=video['id'],
                     title=video['title'],
                     channel=channel,
                     )
-                for video in playlist.videos]
+                for video in video_info_list]
 
     # Retrieve and populate the transcript for each video
     for video in videos:
         try:
-            #TODO: Enable loading translated transcripts
             video.transcript = [TranscriptSegment(text=segment['text'],
                                                 start_ms=int(segment['start']*1000),
                                                 end_ms=int((segment['start']
                                                             + segment['duration'])*1000))
                                 for segment in 
-                                YouTubeTranscriptApi.get_transcript(video.id, languages=['en'])]
+                                yt.download_transcript(video.id, languages=['en'])]
         except Exception as e:
             # Log an error if transcript retrieval fails
             logger.error(f"Failed to retrieve transcript for video: {video.id}")
@@ -105,7 +91,7 @@ async def process_onboarding_request(request_id: str):
 
     # Retrieve channel information and create a new Channel object
     try:
-        channel_info = yps.Channel.get(request.channel_id)
+        channel_info = yt.get_channel_info(request.channel_id)
         channel = Channel(id=channel_info['id'],
                           title=channel_info['title'],
                           description=channel_info['description'],
