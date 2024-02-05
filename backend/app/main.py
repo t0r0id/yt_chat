@@ -1,6 +1,7 @@
-from app.db.models import Channel, ChannelStatus
+from app.chat.engine import create_new_chat, get_chat_history, generate_chat_response
+from app.db.models import Channel, ChannelStatus, Chat
 from fastapi import FastAPI
-from app.db.db import MongoDBClientSingleton, init_db
+from app.db.db import init_db
 from contextlib import asynccontextmanager
 from llama_index import VectorStoreIndex
 import uvicorn
@@ -9,6 +10,7 @@ from llama_index.vector_stores.pinecone import PineconeVectorStore
 from typing import Optional
 import os
 from app.onboarding.yt import search_for_channels
+from llama_index.core.llms.types import ChatMessage
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,8 +21,8 @@ async def lifespan(app: FastAPI):
 #TODO: Add CORS Settings
 app = FastAPI(lifespan=lifespan)
 
-@app.post("/search_channel")
-async def search_channel(query: str, region: Optional[str]='US', limit: Optional[int]=5) -> dict:
+@app.post("/search_channels")
+async def search_channels(query: str, region: Optional[str]='US', limit: Optional[int]=5) -> dict:
     """
     Endpoint to search for channel videos
     
@@ -57,7 +59,7 @@ async def request_onboarding(channel_id: str, requested_by: str) -> dict:
        "channel_id": channel_id
             }
 
-@app.post("/process_onboarding_request")
+@app.post("/onboard_request")
 async def onboard_request(request_id: str) -> dict:
     """
     A function to process an onboarding request identified by the request_id parameter and returns a dictionary with a message and the request_id.
@@ -96,9 +98,6 @@ async def query(query: str, channel_id: str) -> dict:
    if not channel or not channel.status == ChannelStatus.ACTIVE:
        return {"message": "Channel not found"}
 
-   # Get the MongoDB client instance
-   mongo_client = MongoDBClientSingleton.get_instance().sync_client
-
    # Create an instance of MongoDBAtlasVectorSearch
    vector_store = PineconeVectorStore(api_key=os.environ['PINECONE_API_KEY'],
                                      index_name=os.environ['VECTOR_STORE_INDEX_NAME'],
@@ -109,7 +108,7 @@ async def query(query: str, channel_id: str) -> dict:
    index = VectorStoreIndex.from_vector_store(vector_store)
 
    # Create a query engine from the index
-   query_engine = index.as_query_engine()
+   query_engine = index.as_chat_engine
 
    # Query the channel and get the response
    response = query_engine.query(query)
@@ -117,6 +116,55 @@ async def query(query: str, channel_id: str) -> dict:
    # Return the response in a dictionary
    return {"response": response.response}
 
+@app.post("/initiate_chat")
+async def initiate_chat(channel_id: str) -> dict:
+    """
+    Asynchronously initiates a new chat with the specified channel ID.
+
+    Args:
+        channel_id (str): The ID of the channel for which the chat is initiated.
+
+    Returns:
+        dict: A dictionary containing the chat ID.
+    """
+    # Add error handling for create_new_chat function
+    chat_id = await create_new_chat(channel_id)
+    return {"chat_id": str(chat_id)}
+
+@app.get("/chat_history/{chat_id}")
+async def chat_history(chat_id: str) -> dict:
+    """
+    Retrieves the chat history for the specified chat ID.
+
+    Args:
+        chat_id (UUID): The ID of the chat to retrieve the history for.
+
+    Returns:
+        List[ChatMessage]: A list of ChatMessage objects representing the chat history.
+    """
+    #TODO: Add error handling
+    chat_history = await get_chat_history(chat_id)
+
+    return {"chat_history": chat_history}
+
+
+@app.post("/chat/")
+async def chat(chat_message: str, chat_id: str) -> dict:
+    """
+    Saves the chat message to the database and generates a response.
+
+    Args:
+        chat_message (str): The chat message to save.
+        chat_id (str): The ID of the chat.
+    
+    Returns:
+        dict: The generated chat response.
+    """
+    #TODO: Add error handling
+    response = await generate_chat_response(chat_message, chat_id)
+
+    return {"response": response}
+    
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,6 +1,6 @@
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
-from app.db.models import Channel, ChannelOnBoardingRequest
+from app.db.models import Channel, ChannelOnBoardingRequest, Chat
 import pymongo
 import os
 
@@ -28,5 +28,6 @@ async def init_db():
     await init_beanie(database=mongo_client[os.environ['DB_NAME']], document_models=[
         ChannelOnBoardingRequest,
         Channel,
+        Chat
         ])
     
