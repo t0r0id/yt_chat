@@ -6,7 +6,9 @@ from llama_index import VectorStoreIndex
 import uvicorn
 from app.onboarding.engine import process_onboarding_request, create_onboarding_request
 from llama_index.vector_stores.pinecone import PineconeVectorStore
+from typing import Optional
 import os
+from app.onboarding.yt import search_for_channels
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,11 +17,24 @@ async def lifespan(app: FastAPI):
    yield
 
 #TODO: Add CORS Settings
-app = FastAPI(lifespan=lifespan)   
-@app.get("/") 
-async def main_route():     
-  return {"message": "Hello World"}
+app = FastAPI(lifespan=lifespan)
 
+@app.post("/search_channel")
+async def search_channel(query: str, region: Optional[str]='US', limit: Optional[int]=5) -> dict:
+    """
+    Endpoint to search for channel videos
+    
+    Args:
+    - query: str, the search query
+    - region: Optional[str], the region to search in
+    - limit: Optional[int], the maximum number of results to return
+    
+    Returns:
+    - dict: channel videos matching the search query
+    """
+    #TODO: Add error handling
+    return search_for_channels(query, region, limit)
+   
 
 @app.post("/request_onboarding")
 async def request_onboarding(channel_id: str, requested_by: str) -> dict:
