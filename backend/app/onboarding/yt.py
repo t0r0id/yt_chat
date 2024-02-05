@@ -6,6 +6,10 @@ from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception
 import logging
 logger = logging.getLogger(__name__)
 
+def duration_str_to_seconds(duration_str: str)-> int:
+    ftr = [1,60,3600,86400]
+    return sum([a*b for a,b in zip(ftr, map(int,list(reversed(duration_str.split(':')))))])
+
 
 @retry(stop=stop_after_attempt(5), wait=wait_random(min=1, max=3))
 def get_channel_info(channel_id: str) -> dict:

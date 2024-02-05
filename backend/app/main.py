@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from llama_index import VectorStoreIndex
 import uvicorn
 from app.onboarding.engine import process_onboarding_request, create_onboarding_request
-from llama_index.vector_stores.mongodb import MongoDBAtlasVectorSearch
+from llama_index.vector_stores.pinecone import PineconeVectorStore
 import os
 
 @asynccontextmanager
@@ -85,13 +85,13 @@ async def query(query: str, channel_id: str) -> dict:
    mongo_client = MongoDBClientSingleton.get_instance().sync_client
 
    # Create an instance of MongoDBAtlasVectorSearch
-   vector_store = MongoDBAtlasVectorSearch(mongo_client,
-                                           db_name=os.environ['DB_NAME'],
-                                           collection_name=os.environ['VECTOR_STORE_COLLECTION_NAME'],
-                                           index_name=os.environ['VECTOR_STORE_INDEX_NAME'])
+   vector_store = PineconeVectorStore(api_key=os.environ['PINECONE_API_KEY'],
+                                     index_name=os.environ['VECTOR_STORE_INDEX_NAME'],
+                                     namespace=channel.id
+                                     )
 
    # Create an index from the vector store
-   index = VectorStoreIndex.from_vector_store(vector_store, filter={'channel_id': channel_id})
+   index = VectorStoreIndex.from_vector_store(vector_store)
 
    # Create a query engine from the index
    query_engine = index.as_query_engine()
