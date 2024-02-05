@@ -8,7 +8,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field,  HttpUrl
 from beanie import Document, Indexed, Link
-import pymongo
+from llama_index.core.llms.types import MessageRole
+from llama_index.chat_engine.types import ChatMode
 
 
 class Thumbnail(BaseModel):
@@ -25,7 +26,7 @@ class ChannelStatus(Enum):
     ACTIVE = 'Active'
     INACTIVE = 'Inactive'
 
-class Channel(Document, Base):
+class Channel(Document, BaseModel):
     id: Indexed(str) = Field(..., description='Unique YT channel id')
     title: str = Field(None, description="Title of the channel")
     description: Optional[str] = Field(None, description="Description of the channel")
@@ -35,7 +36,7 @@ class Channel(Document, Base):
     class Settings:
         name = "channels"
 
-class TranscriptSegment(BaseModel):
+class TranscriptSegment(Base):
     text: str = Field(None, description="Transcript text") 
     start_ms: int = Field(None, description="Start time in ms of the transcript")
     end_ms: int = Field(None, description="End time in ms of the transcript")
@@ -56,11 +57,30 @@ class ChannelOnBoardingRequestStatus(Enum):
     FAILED = 'Failed'
     COMPLETED = 'Completed'
 
-    
-class ChannelOnBoardingRequest(Document, Base):
+class ChannelOnBoardingRequest(Document, BaseModel):
     channel_id: str = Field(..., description="Unique YT channel id")
     requested_by: Optional[str] = Field(None, description="Requested by user id")
     status: ChannelOnBoardingRequestStatus = Field(ChannelOnBoardingRequestStatus.PENDING, description="Status of the request")
     class Settings:
         name = "onboarding_requests"
+
+# Copy of LlamaIndex's ChatMessage because llamaindex uses pydantic v1 basemodel
+class ChatMessage(BaseModel):
+    """Chat message."""
+
+    role: MessageRole = MessageRole.USER
+    content: Optional[str] = ""
+    additional_kwargs: dict = Field(default_factory=dict)
+
+class Chat(Document, BaseModel):
+    vector_index_name: str = Field(..., description="Name of the vector index")
+    vector_namespace: str = Field(..., description="Namespace of the vector index")
+    chat_history: Optional[List[ChatMessage]] = Field(None, description="Chat history of the chat")
+    chat_mode: ChatMode = Field(ChatMode.CONDENSE_PLUS_CONTEXT, description="Chat mode of the chat")
+    chat_kwargs: dict = Field(default_factory=dict, description="Additional chat kwargs")
+    is_expired: Optional[bool] = Field(False, description="True if the chat has expired")
+
+    
+    class Settings:
+        name = "chats"
     
