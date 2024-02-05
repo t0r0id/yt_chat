@@ -1,6 +1,6 @@
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptList, Transcript
 from youtube_transcript_api._errors import YouTubeRequestFailed, TooManyRequests
-from typing import List
+from typing import List, Optional
 import youtubesearchpython as yps
 from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception
 import logging
@@ -66,7 +66,9 @@ def fetch_transcript(transcript: Transcript) -> str:
     - str: The fetched transcript.
     """
     return transcript.fetch()
-    
+
+def search_for_channels(query: str, region: Optional[str], limit: Optional[int]=5) -> List[dict]:
+    return yps.ChannelsSearch(query, region=region, limit=limit).result()
 
 def download_transcript(video_id, languages=['en','en-IN']):
     """
