@@ -109,7 +109,7 @@ async def query(query: str, channel_id: str) -> dict:
    index = VectorStoreIndex.from_vector_store(vector_store)
 
    # Create a query engine from the index
-   query_engine = index.as_query_engine()
+   query_engine = index.as_chat_engine
 
    # Query the channel and get the response
    response = query_engine.query(query)
