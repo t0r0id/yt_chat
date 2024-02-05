@@ -45,6 +45,7 @@ class Video(Base):
     id: str = Field(..., description="Unique identifier")
     title: str = Field(None, description="Title of the video")
     channel: Link[Channel] = Field(None, description="Channel of the video")
+    duration: Optional[int] = Field(None, description="Duration of the video in seconds")
     transcript: List[TranscriptSegment] = Field(None, description="Transcript of the video")
 
 class ChannelOnBoardingRequestStatus(Enum):

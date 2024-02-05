@@ -2,12 +2,11 @@
 import logging
 import os
 from typing import List
-from app.db.db import MongoDBClientSingleton
 from app.onboarding.reader import YTTranscriptReader
 
 from app.onboarding import yt 
 from llama_index import ServiceContext, StorageContext, VectorStoreIndex
-from llama_index.vector_stores.mongodb import MongoDBAtlasVectorSearch
+from llama_index.vector_stores.pinecone import PineconeVectorStore
 from app.db.models import (Video
                         , Channel
                         , TranscriptSegment
@@ -19,7 +18,7 @@ from app.db.models import (Video
 
 logger = logging.getLogger(__name__)
 
-def get_channel_videos(channel: Channel) -> List[Video]:
+def get_channel_videos(channel: Channel, min_duration_seconds=60) -> List[Video]:
     """
     Retrieves all videos from a given channel and returns a list of Video objects.
 
@@ -38,8 +37,12 @@ def get_channel_videos(channel: Channel) -> List[Video]:
     videos = [Video(id=video['id'],
                     title=video['title'],
                     channel=channel,
+                    duration=yt.duration_str_to_seconds(video['duration']),
                     )
                 for video in video_info_list]
+
+    # Filter out videos that are too short
+    videos = [video for video in videos if video.duration > min_duration_seconds]
 
     # Retrieve and populate the transcript for each video
     for video in videos:
@@ -101,6 +104,7 @@ async def process_onboarding_request(request_id: str):
 
         # Retrieve videos for the channel
         videos = get_channel_videos(channel)
+        logger.info(f"Retrieved {len(videos)} videos with transcripts for channel: {request.channel_id}")
 
         # Check if videos are found for the channel
         if not videos:
@@ -113,11 +117,11 @@ async def process_onboarding_request(request_id: str):
 
         # Set up service and storage contexts
         service_context = ServiceContext.from_defaults(chunk_size=1000)
-        mongo_client = MongoDBClientSingleton.get_instance().client
-        vector_store = MongoDBAtlasVectorSearch(mongo_client,
-                                                db_name=os.environ['DB_NAME'],
-                                                collection_name=os.environ['VECTOR_STORE_COLLECTION_NAME'],
-                                                index_name=os.environ['VECTOR_STORE_INDEX_NAME'])
+
+        vector_store = PineconeVectorStore(api_key=os.environ['PINECONE_API_KEY'],
+                                          index_name=os.environ['VECTOR_STORE_INDEX_NAME'],
+                                          namespace=channel.id
+                                               )
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
         # Index the documents in the vector store
