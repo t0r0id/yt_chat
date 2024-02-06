@@ -1,8 +1,7 @@
+import os
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.db.models import Channel, ChannelOnBoardingRequest, Chat
-import pymongo
-import os
 
 class MongoDBClientSingleton:
     __instance = None
@@ -19,9 +18,7 @@ class MongoDBClientSingleton:
         else:
             db_uri =  os.environ['MONGO_URI']
             self.async_client = AsyncIOMotorClient(db_uri)
-            self.sync_client = pymongo.MongoClient(db_uri)
             MongoDBClientSingleton.__instance = self
-
 
 async def init_db():
     mongo_client = MongoDBClientSingleton.get_instance().async_client
@@ -30,4 +27,3 @@ async def init_db():
         Channel,
         Chat
         ])
-    

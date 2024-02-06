@@ -5,12 +5,10 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
-
 from pydantic import BaseModel, Field,  HttpUrl
 from beanie import Document, Indexed, Link
 from llama_index.core.llms.types import MessageRole
 from llama_index.chat_engine.types import ChatMode
-
 
 class Thumbnail(BaseModel):
     url: HttpUrl  # URL of the thumbnail image
@@ -32,7 +30,7 @@ class Channel(Document, BaseModel):
     description: Optional[str] = Field(None, description="Description of the channel")
     url: HttpUrl = Field(None, description="URL of the channel")
     thumbnails: Optional[List[Thumbnail]] = Field(None, description="Thumbnails of the channel")
-    status: ChannelStatus = Field(ChannelStatus.INACTIVE, description="Status of the channel")
+    status: Optional[ChannelStatus] = Field(ChannelStatus.INACTIVE, description="Status of the channel")
     class Settings:
         name = "channels"
 
@@ -75,12 +73,11 @@ class ChatMessage(BaseModel):
 class Chat(Document, BaseModel):
     vector_index_name: str = Field(..., description="Name of the vector index")
     vector_namespace: str = Field(..., description="Namespace of the vector index")
-    chat_history: Optional[List[ChatMessage]] = Field(None, description="Chat history of the chat")
+    chat_history: Optional[List[ChatMessage]] = Field(default_factory=list, description="Chat history of the chat")
     chat_mode: ChatMode = Field(ChatMode.CONDENSE_PLUS_CONTEXT, description="Chat mode of the chat")
     chat_kwargs: dict = Field(default_factory=dict, description="Additional chat kwargs")
     is_expired: Optional[bool] = Field(False, description="True if the chat has expired")
 
-    
     class Settings:
         name = "chats"
     

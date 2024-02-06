@@ -1,17 +1,47 @@
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptList, Transcript
-from youtube_transcript_api._errors import YouTubeRequestFailed, TooManyRequests
-from typing import List, Optional
-import youtubesearchpython as yps
-from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception
 import logging
 logger = logging.getLogger(__name__)
 
-def duration_str_to_seconds(duration_str: str)-> int:
-    ftr = [1,60,3600,86400]
-    return sum([a*b for a,b in zip(ftr, map(int,list(reversed(duration_str.split(':')))))])
+from typing import List, Optional
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptList, Transcript
+from youtube_transcript_api._errors import YouTubeRequestFailed, TooManyRequests
+import youtubesearchpython as yps
+from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception
 
+def duration_str_to_seconds(duration_str: str) -> int:
+    """
+    Convert a duration string in the format 'days:hours:minutes:seconds' to seconds.
+    
+    Args:
+    duration_str (str): A string representing the duration in the format 'days:hours:minutes:seconds'
+    
+    Returns:
+    int: The total duration in seconds
+    """
+    # Convert the duration string into a list of integers
+    time_units = list(map(int, duration_str.split(':')))
+    
+    # Define the conversion factors for each time unit
+    conversion_factors = [86400, 3600, 60, 1]
+    
+    # Calculate the total duration in seconds
+    total_seconds = sum([a*b for a,b in zip(conversion_factors, time_units)])
+    
+    return total_seconds
 
-@retry(stop=stop_after_attempt(5), wait=wait_random(min=1, max=3))
+def search_channels(query: str, region: Optional[str], limit: Optional[int]) -> List[dict]:
+    """
+    Search for channels based on the query and optional region.
+
+    Args:
+    - query: str, the search query
+    - region: Optional[str], the region to filter the search
+    - limit: Optional[int], the maximum number of channels to return (default 5)
+
+    Returns:
+    - List[dict]: a list of dictionaries representing the found channels
+    """
+    return yps.ChannelsSearch(query, region=region, limit=limit).result()['result']
+
 def get_channel_info(channel_id: str) -> dict:
     """
     Retrieve information about a channel using its ID.
@@ -24,18 +54,29 @@ def get_channel_info(channel_id: str) -> dict:
     """
     return yps.Channel.get(channel_id)
 
-@retry(stop=stop_after_attempt(5), wait=wait_random(min=1, max=3))
-def fetch_playlist(channel_id: str) -> yps.Playlist:
+def get_channel_videos(channel_id: str) -> dict:
     """
-    Fetches a playlist for a given channel ID and returns a Playlist object.
-    
+    Get videos from a given YouTube channel by channel ID.
+
     Args:
-    channel_id (str): The ID of the channel
-    
+        channel_id: The ID of the YouTube channel to retrieve videos from.
+
     Returns:
-    Playlist: The playlist for the given channel ID
+        A dictionary of videos from the given channel.
     """
-    return yps.Playlist(yps.playlist_from_channel_id(channel_id))
+    try:
+        # Retrieve the playlist for the given channel
+        playlist = yps.Playlist.getVideos(yps.playlist_from_channel_id(channel_id))
+    except Exception as e:
+        # Log an error if videos retrieval fails and re-raise the exception
+        logger.error(e)
+        raise Exception(f"Failed to retrieve videos for channel: {channel_id}")
+
+    # If no videos are found, log a message and return an empty list
+    if not playlist or not playlist['videos']:
+        raise Exception(f"No videos found for channel: {channel_id}")
+
+    return playlist['videos']
 
 @retry(stop=stop_after_attempt(5), wait=wait_random(min=1, max=3),
        retry=(retry_if_exception(YouTubeRequestFailed) | retry_if_exception(TooManyRequests))
@@ -66,9 +107,6 @@ def fetch_transcript(transcript: Transcript) -> str:
     - str: The fetched transcript.
     """
     return transcript.fetch()
-
-def search_for_channels(query: str, region: Optional[str], limit: Optional[int]=5) -> List[dict]:
-    return yps.ChannelsSearch(query, region=region, limit=limit).result()
 
 def download_transcript(video_id, languages=['en','en-IN']):
     """
@@ -105,7 +143,7 @@ def download_transcript(video_id, languages=['en','en-IN']):
                     t = transcript_list.find_generated_transcript(language_codes=[lang])
                     data = fetch_transcript(t)
                     return data
-         
+
         # Check for translated transcripts
         translated_langs = set([t['language_code'] for t in transcript_list._translation_languages])
         if set(languages).intersection(translated_langs):
@@ -120,21 +158,5 @@ def download_transcript(video_id, languages=['en','en-IN']):
     
     raise ValueError(f"No transcripts found for video: {video_id}")
     
-def get_channel_videos(channel_id: str) -> dict:
-    try:
-        # Retrieve the playlist for the given channel
-        playlist = fetch_playlist(channel_id)
-        # Keep fetching videos until there are no more left in the playlist
-        while playlist.hasMoreVideos:
-            playlist.getNextVideos()
-    except Exception as e:
-        # Log an error if videos retrieval fails and re-raise the exception
-        logger.error(e)
-        raise ValueError(f"Failed to retrieve videos for channel: {channel_id}")
 
-    # If no videos are found, log a message and return an empty list
-    if not playlist.videos:
-        raise ValueError("No videos found for channel: %s", channel_id)
-    
-    return playlist.videos
         
