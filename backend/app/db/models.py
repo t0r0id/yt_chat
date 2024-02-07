@@ -20,7 +20,7 @@ class Base(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description="Creation datetime")
     updated_at: datetime = Field(default_factory=datetime.now, description="Update datetime")
 
-class ChannelStatus(Enum):
+class ChannelStatusEnum(Enum):
     ACTIVE = 'Active'
     INACTIVE = 'Inactive'
 
@@ -30,7 +30,7 @@ class Channel(Document, BaseModel):
     description: Optional[str] = Field(None, description="Description of the channel")
     url: HttpUrl = Field(None, description="URL of the channel")
     thumbnails: Optional[List[Thumbnail]] = Field(None, description="Thumbnails of the channel")
-    status: Optional[ChannelStatus] = Field(ChannelStatus.INACTIVE, description="Status of the channel")
+    status: Optional[ChannelStatusEnum] = Field(ChannelStatusEnum.INACTIVE, description="Status of the channel")
     class Settings:
         name = "channels"
 
@@ -47,7 +47,7 @@ class Video(Base):
     duration: Optional[int] = Field(None, description="Duration of the video in seconds")
     transcript: List[TranscriptSegment] = Field(None, description="Transcript of the video")
 
-class ChannelOnBoardingRequestStatus(Enum):
+class ChannelOnBoardingRequestStatusEnum(Enum):
     PENDING = 'Pending'
     REJECTED = 'Rejected'
     QUEUED = 'Queued'
@@ -58,7 +58,7 @@ class ChannelOnBoardingRequestStatus(Enum):
 class ChannelOnBoardingRequest(Document, BaseModel):
     channel_id: str = Field(..., description="Unique YT channel id")
     requested_by: Optional[str] = Field(None, description="Requested by user id")
-    status: ChannelOnBoardingRequestStatus = Field(ChannelOnBoardingRequestStatus.PENDING, description="Status of the request")
+    status: ChannelOnBoardingRequestStatusEnum = Field(ChannelOnBoardingRequestStatusEnum.PENDING, description="Status of the request")
     class Settings:
         name = "onboarding_requests"
 

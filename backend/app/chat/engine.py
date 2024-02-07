@@ -8,7 +8,7 @@ from llama_index.vector_stores.pinecone import PineconeVectorStore
 from llama_index import VectorStoreIndex
 from llama_index.core.llms.types import ChatMessage as ChatMessageV1
 
-from app.db.models import Channel, ChannelStatus, Chat, ChatMessage
+from app.db.models import Channel, ChannelStatusEnum, Chat, ChatMessage
 
 def chat_histroy_to_pydantic_v2(chat_history: List[ChatMessageV1]) -> List[ChatMessage]:
      # Convert pydantic v1 ChatMessage to pydantic v2 ChatMessage
@@ -36,7 +36,7 @@ async def create_new_chat(channel_id: str) -> UUID:
             raise ValueError("Channel not found.")
         
         # Check if the channel is active
-        if channel.status != ChannelStatus.ACTIVE:
+        if channel.status != ChannelStatusEnum.ACTIVE:
             raise ValueError("Channel is not active.")
         
         # Create a new chat with the channel ID as the vector index name and namespace
