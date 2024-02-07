@@ -20,7 +20,7 @@ class Base(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description="Creation datetime")
     updated_at: datetime = Field(default_factory=datetime.now, description="Update datetime")
 
-class ChannelStatus(Enum):
+class ChannelStatusEnum(Enum):
     ACTIVE = 'Active'
     INACTIVE = 'Inactive'
 
@@ -30,7 +30,7 @@ class Channel(Document, BaseModel):
     description: Optional[str] = Field(None, description="Description of the channel")
     url: HttpUrl = Field(None, description="URL of the channel")
     thumbnails: Optional[List[Thumbnail]] = Field(None, description="Thumbnails of the channel")
-    status: Optional[ChannelStatus] = Field(ChannelStatus.INACTIVE, description="Status of the channel")
+    status: Optional[ChannelStatusEnum] = Field(ChannelStatusEnum.INACTIVE, description="Status of the channel")
     class Settings:
         name = "channels"
 
@@ -47,33 +47,42 @@ class Video(Base):
     duration: Optional[int] = Field(None, description="Duration of the video in seconds")
     transcript: List[TranscriptSegment] = Field(None, description="Transcript of the video")
 
-class ChannelOnBoardingRequestStatus(Enum):
-    PENDING = 'Pending'
-    REJECTED = 'Rejected'
-    QUEUED = 'Queued'
-    PROCESSING = 'Processing'
-    FAILED = 'Failed'
-    COMPLETED = 'Completed'
+class ChannelOnBoardingRequestStatusEnum(Enum):
+    PENDING = 'pending'
+    REJECTED = 'rejected'
+    QUEUED = 'queued'
+    PROCESSING = 'processing'
+    FAILED = 'failed'
+    COMPLETED = 'completed'
 
 class ChannelOnBoardingRequest(Document, BaseModel):
     channel_id: str = Field(..., description="Unique YT channel id")
     requested_by: Optional[str] = Field(None, description="Requested by user id")
-    status: ChannelOnBoardingRequestStatus = Field(ChannelOnBoardingRequestStatus.PENDING, description="Status of the request")
+    status: ChannelOnBoardingRequestStatusEnum = Field(ChannelOnBoardingRequestStatusEnum.PENDING, description="Status of the request")
     class Settings:
         name = "onboarding_requests"
 
-# Copy of LlamaIndex's ChatMessage because llamaindex uses pydantic v1 basemodel
-class ChatMessage(BaseModel):
-    """Chat message."""
 
-    role: MessageRole = MessageRole.USER
-    content: Optional[str] = ""
+class ChatResponseStatusEnum(Enum):
+    COMPLETED = 'completed'
+    IN_PROGRESS = 'in_progress'
+    REJECTED = 'rejected'
+    REGENRATED = 'regenerated'
+    FAILED = 'failed'
+
+# Copy of LlamaIndex's ChatMessage because llamaindex uses pydantic v1 basemodel
+class ChatResponse(Base):
+    """Chat message."""
+    role: MessageRole = Field(MessageRole.USER, description="Role of the message")
+    content: Optional[str] = Field("", description="Content of the message")
     additional_kwargs: dict = Field(default_factory=dict)
+    status: ChatResponseStatusEnum = Field(ChatResponseStatusEnum.COMPLETED, description="Status of the message")
+    status_reason: Optional[str] = Field(None, description="Status reason of the message")
 
 class Chat(Document, BaseModel):
     vector_index_name: str = Field(..., description="Name of the vector index")
     vector_namespace: str = Field(..., description="Namespace of the vector index")
-    chat_history: Optional[List[ChatMessage]] = Field(default_factory=list, description="Chat history of the chat")
+    chat_history: Optional[List[ChatResponse]] = Field(default_factory=list, description="Chat history of the chat")
     chat_mode: ChatMode = Field(ChatMode.CONDENSE_PLUS_CONTEXT, description="Chat mode of the chat")
     chat_kwargs: dict = Field(default_factory=dict, description="Additional chat kwargs")
     is_expired: Optional[bool] = Field(False, description="True if the chat has expired")
