@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from click import UUID 
 
 from app.onboarding.engine import create_onboarding_request, process_onboarding_request, search_for_channels
-from app.db.models import Channel, ChannelOnBoardingRequest, ChannelOnBoardingRequestStatus
+from app.db.models import Channel, ChannelOnBoardingRequest, ChannelOnBoardingRequestStatusEnum
 
 onboard_router = APIRouter()
 
@@ -67,13 +67,13 @@ async def process_request(request_id: str) -> dict:
         raise HTTPException(status_code=404, detail=f"Onboarding request ({request_id}) not found")
 
     # Check if the request is in the QUEUED state
-    if request.status != ChannelOnBoardingRequestStatus.QUEUED:
+    if request.status != ChannelOnBoardingRequestStatusEnum.QUEUED:
         raise HTTPException(status_code=404, detail=f"Onboarding request ({request.id}) is not in the QUEUED state. Request status: {request.status}")
 
     # Check if the channel has already been onboarded
     channel = Channel.find_one(Channel.id == request.channel_id)
     if await channel:
-        request.status = ChannelOnBoardingRequestStatus.COMPLETED
+        request.status = ChannelOnBoardingRequestStatusEnum.COMPLETED
         await request.save()
         raise HTTPException(status_code=404
                             , detail=f"Channel {request.channel_id} for request {request.id} has already been onboarded. Channel status: {channel.status}"

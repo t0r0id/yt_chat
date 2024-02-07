@@ -11,8 +11,8 @@ from app.onboarding import yt_utils
 from app.db.models import (
                         Channel, 
                         ChannelOnBoardingRequest,
-                        ChannelOnBoardingRequestStatus,
-                        ChannelStatus
+                        ChannelOnBoardingRequestStatusEnum,
+                        ChannelStatusEnum
                         )
 
 async def search_for_channels(query: str, region: Optional[str]='US', limit: Optional[int]=5) -> List[Channel]:
@@ -64,7 +64,7 @@ async def create_onboarding_request(channel_id: str, requested_by: str) -> Chann
         request = ChannelOnBoardingRequest(
             channel_id=channel_id,
             requested_by=requested_by,
-            status=ChannelOnBoardingRequestStatus.PENDING
+            status=ChannelOnBoardingRequestStatusEnum.PENDING
         )
         # Insert the request into the database
         request = await request.insert()
@@ -86,7 +86,7 @@ async def process_onboarding_request(request: ChannelOnBoardingRequest) -> None:
     """
     # Retrieve channel information and create a new Channel object
     try:
-        request.status = ChannelOnBoardingRequestStatus.PROCESSING
+        request.status = ChannelOnBoardingRequestStatusEnum.PROCESSING
         await request.save()
 
         channel_info = yt_utils.get_channel_info(request.channel_id)
@@ -95,7 +95,7 @@ async def process_onboarding_request(request: ChannelOnBoardingRequest) -> None:
                         description=channel_info['description'],
                         url=channel_info['url'],
                         thumbnails=channel_info['thumbnails'],
-                        status=ChannelStatus.INACTIVE
+                        status=ChannelStatusEnum.INACTIVE
                         )
         
         # Retrieve documents for the channel
@@ -104,7 +104,7 @@ async def process_onboarding_request(request: ChannelOnBoardingRequest) -> None:
 
         # Check if videos are found for the channel
         if not video_documents:
-            request.status = ChannelOnBoardingRequestStatus.FAILED
+            request.status = ChannelOnBoardingRequestStatusEnum.FAILED
             await request.save()
             raise ValueError(f"No videos found for the channel: {request.channel_id}")
 
@@ -122,15 +122,15 @@ async def process_onboarding_request(request: ChannelOnBoardingRequest) -> None:
                                     storage_context=storage_context,
                                     service_context=service_context)
         
-        channel.status = ChannelStatus.ACTIVE
+        channel.status = ChannelStatusEnum.ACTIVE
         await channel.save()
 
         # Update the status of the onboarding request to COMPLETED
-        request.status = ChannelOnBoardingRequestStatus.COMPLETED
+        request.status = ChannelOnBoardingRequestStatusEnum.COMPLETED
         await request.save()
     except Exception as e:
         # Update the status of the onboarding request to FAILED and raise the exception
         logger.error(f"Failed to process onboarding request {request.id}", e)
-        request.status = ChannelOnBoardingRequestStatus.FAILED
+        request.status = ChannelOnBoardingRequestStatusEnum.FAILED
         await request.save()
         raise e
