@@ -17,6 +17,7 @@ python-dotenv = "^1.0.1"
 youtube-transcript-api = "^0.6.2"
 tenacity = "^8.2.3"
 pinecone-client = "^3.0.2"
+sse-starlette = "^2.0.0"
 
 [tool.poetry.scripts]
 start = "app.main:app"
