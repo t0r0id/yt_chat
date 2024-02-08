@@ -57,7 +57,6 @@ async def create_onboarding_request(channel_id: str, requested_by: str) -> Chann
     Returns:
         bool: The ID of the created onboarding request.
     """
-    #TODO: Add error handling
 
     # Create a new onboarding request for the specified channel and user
     try:
