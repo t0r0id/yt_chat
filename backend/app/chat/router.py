@@ -13,7 +13,9 @@ from app.chat.engine import create_new_chat, get_chat_history, generate_chat_res
 chat_router = APIRouter()
 
 @chat_router.post("/initiate/")
+
 async def initiate(channel_id: str) -> str:
+    #TODO Add user authentication
     """
     Asynchronously initiates a new chat with the specified channel ID.
 
@@ -31,6 +33,7 @@ async def initiate(channel_id: str) -> str:
 
 @chat_router.get("/history/")
 async def chat_history(chat_id: str) -> List[ChatResponse]:
+    #TODO Add user authentication
     """
     Retrieves the chat history for the specified chat ID.
 
@@ -48,6 +51,7 @@ async def chat_history(chat_id: str) -> List[ChatResponse]:
     
 @chat_router.post("/message_stream/")
 async def message_stream(chat_id: str, user_message: str) -> EventSourceResponse:
+    #TODO Add user authentication
     """
     Endpoint for streaming chat responses.
     
@@ -100,10 +104,17 @@ async def message_stream(chat_id: str, user_message: str) -> EventSourceResponse
         return EventSourceResponse(stream_response(chat))
     except Exception as e:
         logger.error(f"Failed to generate chat response stream for chat {chat_id}", e)
+        chat.chat_history.append(ChatResponse(role=MessageRole.USER
+                                                  , content=user_message
+                                                  , status=ChatResponseStatusEnum.FAILED
+                                                  , error="exception raised"
+                                                  ))
+        await chat.save()
         raise HTTPException(status_code=500, detail="chat response generation failed")
 
 @chat_router.post("/message/")
 async def message(chat_id: str, user_message: str) -> ChatResponse:
+    #TODO Add user authentication
     """
     Endpoint to handle incoming chat messages and generate a response without stream.
 
