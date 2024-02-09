@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
-from pydantic import BaseModel, Field,  HttpUrl
+from pydantic import BaseModel, Field,  HttpUrl, model_validator
 from beanie import Document, Indexed, Link
 from llama_index.core.llms.types import MessageRole
 from llama_index.chat_engine.types import ChatMode
@@ -20,11 +20,20 @@ class Base(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description="Creation datetime")
     updated_at: datetime = Field(default_factory=datetime.now, description="Update datetime")
 
-class ChannelStatusEnum(Enum):
-    ACTIVE = 'Active'
-    INACTIVE = 'Inactive'
+    class Config:
+        validate_assignment = True
 
-class Channel(Document, BaseModel):
+    def update_fields(self, **kwargs):
+        for field_name, field_value in kwargs.items():
+            setattr(self, field_name, field_value)
+        self.updated_at = datetime.now()
+
+
+class ChannelStatusEnum(Enum):
+    ACTIVE = 'active'
+    INACTIVE = 'inactive'
+
+class Channel(Document, Base):
     id: Indexed(str) = Field(..., description='Unique YT channel id')
     title: str = Field(None, description="Title of the channel")
     description: Optional[str] = Field(None, description="Description of the channel")
@@ -40,7 +49,7 @@ class TranscriptSegment(Base):
     end_ms: int = Field(None, description="End time in ms of the transcript")
     chapter: Optional[str] = Field(None, description="Chapter of the transcript")
 
-class Video(Base):
+class Video(BaseModel):
     id: str = Field(..., description="Unique identifier")
     title: str = Field(None, description="Title of the video")
     channel: Link[Channel] = Field(None, description="Channel of the video")
@@ -55,7 +64,7 @@ class ChannelOnBoardingRequestStatusEnum(Enum):
     FAILED = 'failed'
     COMPLETED = 'completed'
 
-class ChannelOnBoardingRequest(Document, BaseModel):
+class ChannelOnBoardingRequest(Document, Base):
     channel_id: str = Field(..., description="Unique YT channel id")
     requested_by: Optional[str] = Field(None, description="Requested by user id")
     status: ChannelOnBoardingRequestStatusEnum = Field(ChannelOnBoardingRequestStatusEnum.PENDING, description="Status of the request")
@@ -79,7 +88,7 @@ class ChatResponse(Base):
     status: ChatResponseStatusEnum = Field(ChatResponseStatusEnum.COMPLETED, description="Status of the message")
     status_reason: Optional[str] = Field(None, description="Status reason of the message")
 
-class Chat(Document, BaseModel):
+class Chat(Document, Base):
     vector_index_name: str = Field(..., description="Name of the vector index")
     vector_namespace: str = Field(..., description="Namespace of the vector index")
     chat_history: Optional[List[ChatResponse]] = Field(default_factory=list, description="Chat history of the chat")
@@ -89,4 +98,11 @@ class Chat(Document, BaseModel):
 
     class Settings:
         name = "chats"
-    
+
+class ActiveChatSessionMap(Document, Base):
+    user_session_id: Indexed(str) = Field(..., description="User or session id")
+    channel_id: Indexed(str) = Field(..., description="Channel id")
+    active_chat_id: str = Field(..., description="Active chat id")
+
+    class Settings:
+        name = "active_chat_sessions"
