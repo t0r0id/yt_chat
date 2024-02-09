@@ -5,9 +5,10 @@ from fastapi import APIRouter, HTTPException, Request, Body
 from click import UUID
 from typing import Generator, List
 from sse_starlette.sse import EventSourceResponse
+from beanie.odm.operators.find.logical import And
 from llama_index.core.llms.types import MessageRole
 
-from app.db.models import ChatResponse, Chat, ChatResponseStatusEnum
+from app.db.models import ChatResponse, Chat, ChatResponseStatusEnum, ActiveChatSessionMap
 from app.chat.engine import create_new_chat, get_chat_history, generate_chat_response_stream
 
 chat_router = APIRouter()
@@ -28,11 +29,50 @@ async def initiate(request: Request, channel_id: str = Body(..., embed=True)) ->
     try:
         # Create a new chat with the specified channel ID
         chat_id = await create_new_chat(channel_id)
+
+        session_id = request.cookies.get('sessionId')
+        if session_id:
+            session_map = ActiveChatSessionMap(user_session_id=session_id
+                                               , channel_id=channel_id
+                                               , active_chat_id=str(chat_id))
+            await session_map.save()
+        
         return str(chat_id)
     except Exception as e:
         # If chat creation fails, raise an HTTPException
         raise HTTPException(status_code=500, detail="chat creation failed")
 
+@chat_router.post("/get_chat_id/")
+async def get_chat_id(request: Request, channel_id: str = Body(..., embed=True)) -> str:
+    """
+    This function retrieves the chat ID for the given channel ID and session ID.
+    If there is no active chat session map, it initiates a new chat and returns the chat ID.
+    
+    Args:
+        request (Request): The request object.
+        channel_id (str): The channel ID for which the chat ID is to be retrieved.
+
+    Returns:
+        str: The retrieved chat ID.
+    """
+    # Retrieve session ID from request cookies
+    session_id = request.cookies.get('sessionId')
+
+    # Check if session ID exists
+    if session_id:
+        # Find active chat session map based on session ID and channel ID
+        session_map_list = await ActiveChatSessionMap.find(And(
+            ActiveChatSessionMap.user_session_id == session_id
+            , ActiveChatSessionMap.channel_id == channel_id
+        )).to_list()
+
+        # If active chat session map exists, return the active chat ID from latest session
+        if session_map_list:
+            latest_session_map = max(session_map_list, key=lambda session: session.updated_at)
+            return latest_session_map.active_chat_id
+    
+    # If no active chat session map exists, initiate a new chat and return the chat ID
+    return await initiate(request, channel_id)
 
 @chat_router.post("/history/")
 async def chat_history(request: Request, chat_id: str = Body(..., embed=True)) -> List[ChatResponse]:

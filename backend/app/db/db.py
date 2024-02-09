@@ -1,7 +1,7 @@
 import os
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
-from app.db.models import Channel, ChannelOnBoardingRequest, Chat
+from app.db.models import Channel, ChannelOnBoardingRequest, Chat, ActiveChatSessionMap
 
 class MongoDBClientSingleton:
     __instance = None
@@ -25,5 +25,6 @@ async def init_db():
     await init_beanie(database=mongo_client[os.environ['DB_NAME']], document_models=[
         ChannelOnBoardingRequest,
         Channel,
-        Chat
+        Chat,
+        ActiveChatSessionMap
         ])
