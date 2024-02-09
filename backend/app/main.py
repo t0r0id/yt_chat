@@ -2,6 +2,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 
@@ -20,6 +21,15 @@ app = FastAPI(
     title = "yt-chat",
     lifespan=lifespan
     )  
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
   
 app.include_router(onboard_router, prefix="/onboard", tags=['onboard'])
 app.include_router(chat_router, prefix="/chat", tags=['chat'])
