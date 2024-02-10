@@ -6,6 +6,7 @@ from click import UUID
 from typing import Generator, List
 from sse_starlette.sse import EventSourceResponse
 from beanie.odm.operators.find.logical import And
+from beanie.odm.enums import SortDirection
 from llama_index.core.llms.types import MessageRole
 
 from app.db.models import ChatResponse, Chat, ChatResponseStatusEnum, ActiveChatSessionMap
@@ -63,13 +64,14 @@ async def get_chat_id(request: Request, channel_id: str = Body(..., embed=True))
         # Find active chat session map based on session ID and channel ID
         session_map_list = await ActiveChatSessionMap.find(And(
             ActiveChatSessionMap.user_session_id == session_id
-            , ActiveChatSessionMap.channel_id == channel_id
-        )).to_list()
+            , ActiveChatSessionMap.channel_id == channel_id),
+            limit=1,
+            sort=[("updated_at", SortDirection.DESCENDING)]
+            ).to_list()
 
         # If active chat session map exists, return the active chat ID from latest session
         if session_map_list:
-            latest_session_map = max(session_map_list, key=lambda session: session.updated_at)
-            return latest_session_map.active_chat_id
+            return session_map_list[0].active_chat_id
     
     # If no active chat session map exists, initiate a new chat and return the chat ID
     return await initiate(request, channel_id)
