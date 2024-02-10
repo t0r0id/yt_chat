@@ -4,8 +4,8 @@ logger = logging.getLogger(__name__)
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Request, Body
 
-from app.onboarding.engine import create_onboarding_request, process_onboarding_request, search_for_channels
-from app.db.models import Channel, ChannelOnBoardingRequest, ChannelOnBoardingRequestStatusEnum, ChannelStatusEnum
+from app.onboarding.engine import create_onboarding_request, process_onboarding_request, search_for_channels, get_top_channels
+from app.db.models import Channel, ChannelOnBoardingRequest, ChannelOnBoardingRequestStatusEnum
 
 onboard_router = APIRouter()
 
@@ -55,6 +55,23 @@ async def get_channel(request: Request,
     else:
         # If the channel is not found or not active, raise an HTTPException
         raise HTTPException(status_code=404, detail=f"Channel {channel_id} not found or not active")
+
+@onboard_router.post("/channels")
+async def get_channels(request: Request, limit: int = 5) -> List[Channel]:
+    """
+    Retrieves the top channels for the user session.
+
+    Args:
+        request (Request): The incoming request.
+        limit (int, optional): The maximum number of channels to retrieve. Defaults to 5.
+
+    Returns:
+        List[Channel]: The list of top channels.
+    """
+    user_session_id = request.cookies.get('sessionId')
+    channels = await get_top_channels(user_session_id, limit)
+
+    return channels
 
 @onboard_router.post("/initiate_request")
 async def initiate_request(request: Request,
