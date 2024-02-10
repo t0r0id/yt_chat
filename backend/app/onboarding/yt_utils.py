@@ -40,7 +40,11 @@ def search_channels(query: str, region: Optional[str], limit: Optional[int]) -> 
     Returns:
     - List[dict]: a list of dictionaries representing the found channels
     """
-    return yps.ChannelsSearch(query, region=region, limit=limit).result()['result']
+    channel_list = yps.ChannelsSearch(query, region=region, limit=limit).result()['result']
+    for channel in channel_list:
+        for thumbnail in channel['thumbnails']:
+            thumbnail['url'] = "https:" + thumbnail['url'] if thumbnail['url'].startswith("//") else thumbnail['url']
+    return channel_list
 
 def get_channel_info(channel_id: str) -> dict:
     """

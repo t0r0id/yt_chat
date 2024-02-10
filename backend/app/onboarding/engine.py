@@ -5,6 +5,7 @@ import os
 from typing import List, Optional
 from llama_index import ServiceContext, StorageContext, VectorStoreIndex
 from llama_index.vector_stores.pinecone import PineconeVectorStore
+from beanie.odm.operators.find.logical import And
 
 from app.onboarding.reader import YTChannelReader
 from app.onboarding import yt_utils
@@ -29,14 +30,14 @@ async def search_for_channels(query: str, region: Optional[str]='US', limit: Opt
     """
     try:
         channel_list = yt_utils.search_channels(query, region, limit)
-        for channel in channel_list:
-            for thumbnail in channel['thumbnails']:
-                thumbnail['url'] = "https:" + thumbnail['url'] if thumbnail['url'].startswith("//") else thumbnail['url']
-        channels = [Channel(id=channel['id'],
+
+        channels = [await get_active_channel(channel['id']) or
+                    Channel(id=channel['id'],
                             title=channel['title'],
                             description=" ".join([s['text'] for s in channel['descriptionSnippet']]),
                             url=channel['link'],
-                            thumbnails=channel['thumbnails']
+                            thumbnails=channel['thumbnails'],
+                            status= ChannelStatusEnum.INACTIVE
                             ) 
                     for channel in channel_list
                     ]
@@ -44,6 +45,18 @@ async def search_for_channels(query: str, region: Optional[str]='US', limit: Opt
     except Exception as e:
         logger.error(f"channel search failed for query: {query}", e)
         raise e
+    
+async def get_active_channel(channel_id: str) -> Channel:
+    """
+    Retrieve an active channel by its ID.
+
+    Args:
+    - channel_id (str): The ID of the channel to retrieve.
+
+    Returns:
+    - Channel: The active channel with the specified ID.
+    """
+    return await Channel.find_one(And(Channel.id == channel_id, Channel.status == ChannelStatusEnum.ACTIVE))
     
 
 async def create_onboarding_request(channel_id: str, requested_by: str) -> ChannelOnBoardingRequest:

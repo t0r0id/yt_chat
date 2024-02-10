@@ -5,7 +5,7 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Request, Body
 
 from app.onboarding.engine import create_onboarding_request, process_onboarding_request, search_for_channels
-from app.db.models import Channel, ChannelOnBoardingRequest, ChannelOnBoardingRequestStatusEnum
+from app.db.models import Channel, ChannelOnBoardingRequest, ChannelOnBoardingRequestStatusEnum, ChannelStatusEnum
 
 onboard_router = APIRouter()
 
@@ -28,6 +28,33 @@ async def search_channels(query: str
         return await search_for_channels(query, region, limit)
     except Exception as e:
         raise HTTPException(status_code=500, detail="channel search failed")
+    
+@onboard_router.post("/channel")
+async def get_channel(request: Request,
+                     channel_id: str = Body(..., embed=True)) -> Channel:
+    """
+    Retrieves the channel with the given channel_id if it is active.
+
+    Args:
+    - request: The incoming request
+    - channel_id: The ID of the channel to retrieve
+
+    Returns:
+    - The channel with the given ID if it is active
+
+    Raises:
+    - HTTPException: If the channel is not found or not active
+    """
+
+    # Attempt to find the channel with the provided channel_id
+    channel = await Channel.find_one(Channel.id == channel_id)
+
+    # If the channel exists and is active, return it
+    if channel:
+        return channel
+    else:
+        # If the channel is not found or not active, raise an HTTPException
+        raise HTTPException(status_code=404, detail=f"Channel {channel_id} not found or not active")
 
 @onboard_router.post("/initiate_request")
 async def initiate_request(request: Request,
@@ -90,4 +117,6 @@ async def process_request(request: Request,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail="Request processing failed")
+    
+    
     
