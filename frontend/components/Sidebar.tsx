@@ -9,6 +9,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { ChannelType } from "@/lib/types/yt";
 import { YtApiClient } from "@/lib/api/yt";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 type Props = {};
 
@@ -53,33 +54,32 @@ const Sidebar = (props: Props) => {
       </div>
       <div className="flex-grow overflow-y-auto mx-2 pb-2 space-y-1">
         {channels.map((channel) => (
-          <div className="relative group" key={channel._id}>
+          <div
+            className="relative group flex items-center justify-between p-3 w-full rounded-lg transition-colors duration-200 cursor-pointer
+      hover:text-white hover:bg-white/10"
+            key={channel._id}
+          >
             <Link
               href={`/conversation/c/${channel._id}`}
               className={cn(
-                `text-md group flex p-3 w-full 
-            justify-start font-medium cursor-pointer
-            hover:text-white hover:bg-white/10 rounded-lg transition-colors duration-200
-            `,
+                `text-md flex items-center font-medium `,
                 pathName.split("/").at(-1) === channel._id
                   ? "bg-white/10 text-white"
                   : "text-inherit"
               )}
             >
-              <div className="flex items-center flex-1">
-                <img
-                  src={channel.thumbnails?.[0]?.url?.toString()}
-                  alt="Channel Thumbnail"
-                  className="mr-2"
-                />
-                <div>{channel.title}</div>
-              </div>
+              <Image
+                src={channel?.thumbnails?.[0].url.toString()!}
+                alt={channel?.title!}
+                className="rounded-full"
+                width={40}
+                height={40}
+              />
+              <div className="ml-2">{channel.title}</div>
             </Link>
             <Button
-              className="absolute right-1 top-1 p-1
-            text-inherit space-x-1 bg-inherit
-            hover:text-red-500
-            rounded-md group-hover:block"
+              className="p-1 text-inherit space-x-1 bg-transparent
+    hover:text-red-500 rounded-md "
               onClick={() => handleChannelRemoval(channel._id)}
             >
               <Trash2 className="h-3 w-3" />

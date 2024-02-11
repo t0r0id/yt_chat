@@ -48,6 +48,7 @@ const ConversationComponent: React.FC<IConversationComponent> = ({
           </div>
         );
       })}
+      <div ref={lastElementRef}></div>
     </>
   );
 };
