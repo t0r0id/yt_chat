@@ -36,7 +36,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
             session_id = str(uuid4())
             request.cookies.update({"sessionId": session_id})
             user = User(id=session_id)
-            user.channels = [c.id for c in await get_default_channels()]
+            user.channels = set([c.id for c in await get_default_channels()])
             await user.save()
 
         # Call the next middleware or the endpoint

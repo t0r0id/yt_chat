@@ -8,7 +8,7 @@ from app.onboarding.engine import (create_onboarding_request,
                                    process_onboarding_request,
                                    search_for_channels,
                                    get_user_channels,
-                                   get_active_channels
+                                   get_channels
                                    )
 from app.db.models import (Channel,
                            ChannelOnBoardingRequest,
@@ -56,7 +56,7 @@ async def channel_details(request: Request,
     """
 
     # Attempt to find the channel with the provided channel_id
-    channels, _ = await get_active_channels([channel_id])
+    channels, _ = await get_channels([channel_id])
 
     # If the channel exists and is active, return it
     if channels:
