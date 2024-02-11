@@ -1,5 +1,5 @@
 export interface hasId {
-  _id: string;
+  id: string;
 }
 
 export type dict = {

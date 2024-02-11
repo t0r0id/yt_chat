@@ -14,7 +14,7 @@ const useMessages = (channelId: string) => {
     setMessages((prevMessages) => [
       ...prevMessages,
       {
-        _id: uuidv4(),
+        id: uuidv4(),
         content,
         role: MessageRoleEnum.USER,
         channelId: channelId,
@@ -28,7 +28,7 @@ const useMessages = (channelId: string) => {
     console.log(message);
     setMessages((prevMessages) => {
       const existingMessageIndex = prevMessages.findIndex(
-        (msg) => msg._id === message._id
+        (msg) => msg.id === message.id
       );
 
       // Update the existing message

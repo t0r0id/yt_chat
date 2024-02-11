@@ -23,20 +23,27 @@ const ConversationComponent: React.FC<IConversationComponent> = ({
     <>
       {messages.map((message, index) => {
         return (
-          <div key={message._id} className="my-2">
+          <div key={message.id} className="my-2">
             {message.role === MessageRoleEnum.USER && (
-              <div className="flex justify-end" key={index}>
-                <div className="bg-blue-500 text-white p-2 rounded-lg">
-                  {message.content}
+              <>
+                <p>You.</p>
+                {/* TODO: Add user image? */}
+                <div className="flex border-b border-zinc-700" key={index}>
+                  <div className="text-white p-2 rounded-lg">
+                    {message.content}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
             {message.role === MessageRoleEnum.ASSISTANT && (
-              <div className="flex justify-start" key={index}>
-                <div className="bg-gray-200 p-2 rounded-lg text-black">
-                  {message.content}
+              <>
+                <p>Assistant.</p>
+                <div className="flex border-b border-zinc-700" key={index}>
+                  <div className="text-white p-2 rounded-lg">
+                    {message.content}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         );
