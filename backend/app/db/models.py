@@ -3,7 +3,7 @@ Pydantic Schemas for the API
 """
 from uuid import UUID, uuid4
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Set
 from enum import Enum
 from pydantic import BaseModel, Field,  HttpUrl, model_validator
 from beanie import Document, Indexed
@@ -62,6 +62,7 @@ class ChannelOnBoardingRequestStatusEnum(Enum):
     PROCESSING = 'processing'
     FAILED = 'failed'
     COMPLETED = 'completed'
+    AUTOCOMPLETED = 'autocompleted'
 
 class ChannelOnBoardingRequest(Document, Base):
     channel_id: str = Field(..., description="Unique YT channel id")
@@ -108,7 +109,7 @@ class ActiveChatSessionMap(Document, Base):
 
 class User(Document, Base):
     id: Indexed(str) = Field(..., description="User or session id")
-    channels: List[str] = Field(default_factory=list, description="List of added channels")
+    channels: Set[str] = Field(default_factory=set, description="List of added channels")
 
     class Settings:
         name = "users"
