@@ -25,12 +25,11 @@ const useMessages = (channelId: string) => {
   };
 
   const systemSendMessage = (message: Message) => {
-    console.log(message);
     setMessages((prevMessages) => {
       const existingMessageIndex = prevMessages.findIndex(
-        (msg) => msg.id === message.id
+        (msg) => msg.id === message.id || msg.id === "initial"
       );
-
+      console.log("existingMessageIndex", existingMessageIndex);
       // Update the existing message
       if (existingMessageIndex > -1) {
         const updatedMessages = [...prevMessages];
@@ -41,8 +40,6 @@ const useMessages = (channelId: string) => {
       // Add a new message if it doesn't exist
       return [...prevMessages, message];
     });
-
-    console.log(messages);
   };
 
   return {

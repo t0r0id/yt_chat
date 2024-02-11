@@ -35,16 +35,27 @@ const ConversationComponent: React.FC<IConversationComponent> = ({
                 </div>
               </>
             )}
-            {message.role === MessageRoleEnum.ASSISTANT && (
-              <>
-                <p>Assistant.</p>
-                <div className="flex border-b border-zinc-700" key={index}>
-                  <div className="text-white p-2 rounded-lg">
-                    {message.content}
+            {message.role === MessageRoleEnum.ASSISTANT &&
+              message.id !== "initial" && (
+                <>
+                  <p>Assistant.</p>
+                  <div className="flex border-b border-zinc-700" key={index}>
+                    <div className="text-white p-2 rounded-lg">
+                      {message.content}
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            {message.role === MessageRoleEnum.ASSISTANT &&
+              message.id === "initial" && (
+                <>
+                  <p>Assistant.</p>
+                  <span className="relative flex h-3 w-3 mx-2 my-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                  </span>
+                </>
+              )}
           </div>
         );
       })}

@@ -64,7 +64,7 @@ const Sidebar = (props: Props) => {
               className={cn(
                 `text-md flex items-center font-medium `,
                 pathName.split("/").at(-1) === channel._id
-                  ? "bg-white/10 text-white"
+                  ? "text-white"
                   : "text-inherit"
               )}
             >

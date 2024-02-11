@@ -108,6 +108,15 @@ const Page = ({ params }: { params: { id: string } }) => {
     const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${
       conversation?.id
     }/message_stream?user_message=${encodeURI(userMessage)}`;
+
+    systemSendMessage({
+      id: "initial",
+      content: "Thinking...",
+      role: MessageRoleEnum.ASSISTANT,
+      channelId: params.id,
+      created_at: new Date(),
+      status: ConversationResponseStatusEnum.IN_PROGRESS,
+    });
     const events = new EventSource(url);
     events.onmessage = (event: MessageEvent) => {
       const parsedData: Message = JSON.parse(event.data);
@@ -142,6 +151,12 @@ const Page = ({ params }: { params: { id: string } }) => {
     };
   }, [submit]);
 
+  const redirectToYouTube = (channelId: any) => {
+    if (channelId) {
+      window.open(`https://youtube.com/channel/${channelId}`, "_blank");
+    }
+  };
+
   if (!channelReady) {
     return (
       <div className="flex items-center justify-center h-screen bg-zinc-800">
@@ -156,7 +171,10 @@ const Page = ({ params }: { params: { id: string } }) => {
       <div className="flex flex-col h-[100dvh] bg-zinc-800 items-center">
         <div className="border-b relative border-zinc-700 px-4 w-full">
           <div className="flex items-center justify-between py-4 mx-20">
-            <div className="flex items-center">
+            <div
+              className="flex items-center cursor-pointer"
+              onClick={() => redirectToYouTube(activeChannel?._id)}
+            >
               <Image
                 src={activeChannel?.thumbnails?.[0].url.toString()!}
                 alt={activeChannel?.title!}
@@ -165,7 +183,7 @@ const Page = ({ params }: { params: { id: string } }) => {
                 height={48}
               />
               <div className="ml-2">
-                <h1 className="text-lg font-bold text-white">
+                <h1 className="text-lg font-bold text-white hover:underline ">
                   {activeChannel?.title}
                 </h1>
               </div>
@@ -184,22 +202,28 @@ const Page = ({ params }: { params: { id: string } }) => {
           <ConversationComponent messages={messages} />
         </div>
         <div className="w-full lg:w-5/6">
-          <div className="relative flex h-[70px] w-full items-center ">
+          <div className="relative flex h-[90px] w-full items-center ">
             <textarea
               rows={1}
-              className="box-border w-full flex-grow resize-none overflow-hidden px-5 py-3 pr-10 text-gray-90 placeholder-gray-60 outline-none  bg-gray-700 rounded-lg border border-zinc-500"
-              placeholder={"Start typing your question..."}
+              className="box-border w-full flex-grow resize-none overflow-hidden px-5 py-3 pr-10 text-white placeholder-gray-60 outline-none  bg-gray-700 rounded-lg border border-zinc-500 "
+              placeholder={
+                !isMessagePending
+                  ? "Start typing your question..."
+                  : "Generating your response..."
+              }
               value={userMessage}
               onChange={(e) => setUserMessage(e.target.value)}
               disabled={isMessagePending}
             />
-            <button
-              disabled={isMessagePending || userMessage.length === 0}
-              onClick={submit}
-              className="z-1 absolute right-6 top-1/2 mb-1 -translate-y-1/2 transform rounded text-gray-90 opacity-80 enabled:hover:opacity-100 disabled:opacity-30"
-            >
-              <BsArrowUpCircle size={24} />
-            </button>
+            {!isMessagePending && (
+              <button
+                disabled={isMessagePending || userMessage.length === 0}
+                onClick={submit}
+                className="z-1 absolute right-6 top-1/2 mb-1 -translate-y-1/2 transform rounded text-white opacity-80 enabled:hover:opacity-100 disabled:opacity-30"
+              >
+                <BsArrowUpCircle size={24} />
+              </button>
+            )}
           </div>
         </div>
       </div>
