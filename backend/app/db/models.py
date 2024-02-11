@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Optional
 from enum import Enum
 from pydantic import BaseModel, Field,  HttpUrl, model_validator
-from beanie import Document, Indexed, Link
+from beanie import Document, Indexed
 from llama_index.core.llms.types import MessageRole
 from llama_index.chat_engine.types import ChatMode
 
@@ -27,7 +27,6 @@ class Base(BaseModel):
         for field_name, field_value in kwargs.items():
             setattr(self, field_name, field_value)
         self.updated_at = datetime.now()
-
 
 class ChannelStatusEnum(Enum):
     ACTIVE = 'active'
@@ -52,7 +51,7 @@ class TranscriptSegment(Base):
 class Video(BaseModel):
     id: str = Field(..., description="Unique identifier")
     title: str = Field(None, description="Title of the video")
-    channel: Link[Channel] = Field(None, description="Channel of the video")
+    channel: Channel = Field(None, description="Channel of the video")
     duration: Optional[int] = Field(None, description="Duration of the video in seconds")
     transcript: List[TranscriptSegment] = Field(None, description="Transcript of the video")
 
@@ -106,3 +105,10 @@ class ActiveChatSessionMap(Document, Base):
 
     class Settings:
         name = "active_chat_sessions"
+
+class User(Document, Base):
+    id: Indexed(str) = Field(..., description="User or session id")
+    channels: List[str] = Field(default_factory=list, description="List of added channels")
+
+    class Settings:
+        name = "users"
