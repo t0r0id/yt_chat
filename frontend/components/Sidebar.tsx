@@ -6,9 +6,15 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 
-import { ChannelType } from "@/lib/types/yt";
+import { ChannelStatusEnum, ChannelType } from "@/lib/types/yt";
 import { YtApiClient } from "@/lib/api/yt";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Props = {};
 
@@ -55,12 +61,17 @@ const Sidebar = (props: Props) => {
         {channels.map((channel) => (
           <div className="relative group" key={channel._id}>
             <Link
-              href={`/conversation/c/${channel._id}`}
+              href={
+                channel.status === ChannelStatusEnum.ACTIVE
+                  ? `/conversation/c/${channel._id}`
+                  : ""
+              }
               className={cn(
                 `text-md group flex p-3 w-full 
-            justify-start font-medium cursor-pointer
-            hover:text-white hover:bg-white/10 rounded-lg transition-colors duration-200
-            `,
+            justify-start font-medium cursor-pointerrounded-lg`,
+                channel.status === ChannelStatusEnum.ACTIVE
+                  ? "hover:text-white hover:bg-white/10 transition-colors duration-200"
+                  : "opacity-50",
                 pathName.split("/").at(-1) === channel._id
                   ? "bg-white/10 text-white"
                   : "text-inherit"
@@ -72,18 +83,33 @@ const Sidebar = (props: Props) => {
                   alt="Channel Thumbnail"
                   className="mr-2"
                 />
-                <div>{channel.title}</div>
+                <div>
+                  <div>{channel.title}</div>
+                  {channel.status === ChannelStatusEnum.INACTIVE && (
+                    <div className="text-xs text-zinc-400">(Inactive)</div>
+                  )}
+                </div>
               </div>
             </Link>
-            <Button
-              className="absolute right-1 top-1 p-1
-            text-inherit space-x-1 bg-inherit
-            hover:text-red-500
-            rounded-md group-hover:block"
-              onClick={() => handleChannelRemoval(channel._id)}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
+
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    className="absolute right-1 top-1 p-1
+                              text-inherit space-x-1 bg-inherit
+                              hover:text-red-500
+                              rounded-md group-hover:block"
+                    onClick={() => handleChannelRemoval(channel._id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs text-inherit">Remove channel</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         ))}
       </div>
