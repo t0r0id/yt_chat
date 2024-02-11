@@ -24,3 +24,11 @@ export interface ConversationResponseType extends hasId {
 export interface ConversationType extends hasId {
   conversationHistory?: ConversationResponseType[];
 }
+
+export interface Message extends hasId {
+  content: string;
+  role: MessageRoleEnum;
+  channelId: string;
+  created_at: Date;
+  status: ConversationResponseStatusEnum;
+}
