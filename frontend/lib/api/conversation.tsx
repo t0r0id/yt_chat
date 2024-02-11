@@ -52,7 +52,7 @@ export class ApiClient {
   ): Promise<AxiosResponse> {
     let requestConfig = {
       method: "post",
-      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/onboard/channel/`,
+      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/onboard/channel_details/`,
       data: {
         channel_id: channel_id,
       },
