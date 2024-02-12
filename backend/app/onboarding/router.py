@@ -153,8 +153,8 @@ async def process_request(request: Request,
         raise HTTPException(status_code=404, detail=f"Onboarding request ({onboarding_request.id}) is not in the QUEUED state. Request status: {onboarding_request.status}")
 
     # Check if the channel has already been onboarded
-    channel = await Channel.find_one(Channel.id == onboarding_request.channel_id)
-    if channel:
+    existingRequest = await ChannelOnBoardingRequest.find_one(ChannelOnBoardingRequest.channel_id == onboarding_request.channel_id)
+    if existingRequest and existingRequest.status == ChannelOnBoardingRequestStatusEnum.COMPLETED:
         onboarding_request.status = ChannelOnBoardingRequestStatusEnum.COMPLETED
         await onboarding_request.save()
         raise HTTPException(status_code=404, detail=f"Channel {onboarding_request.channel_id} for request {onboarding_request.id} has already been onboarded. Channel status: {channel.status}")
