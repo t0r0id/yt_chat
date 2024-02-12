@@ -1,5 +1,5 @@
 import { SearchCardProvider } from "@/components/search-card-provider";
-import Sidebar from "@/components/sidebar";
+import Sidebar from "@/components/sidebar-2";
 import React from "react";
 
 type Props = {
