@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 
 type Props = {};
 
@@ -80,12 +81,16 @@ const Sidebar = (props: Props) => {
                   : "text-inherit"
               )}
             >
-              <div className="flex items-center flex-1">
-                <img
-                  src={channel.thumbnails?.[0]?.url?.toString()}
-                  alt="Channel Thumbnail"
-                  className="mr-2"
-                />
+              <div className="flex items-center flex-1 gap-2">
+                <Avatar>
+                  <AvatarImage
+                    src={channel.thumbnails?.[0]?.url?.toString()}
+                    alt={channel.title + " thumbnail"}
+                    className="h-12 w-12 rounded-full"
+                  />
+                  <AvatarFallback>YT</AvatarFallback>
+                </Avatar>
+
                 <div>
                   <div>{channel.title}</div>
                   {channel.status === ChannelStatusEnum.INACTIVE && (
