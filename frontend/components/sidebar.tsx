@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 import { ChannelStatusEnum, ChannelType } from "@/lib/types/yt";
 import { YtApiClient } from "@/lib/api/yt";
 import { Button } from "@/components/ui/button";
-import { useSearchCard } from "@/hooks/useSearchCard";
 import {
   Tooltip,
   TooltipContent,
@@ -17,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import AddChannelButton from "./add-channel-button";
 
 type Props = {};
 
@@ -32,7 +32,6 @@ const Sidebar = (props: Props) => {
       }
     })();
   }, []);
-  const searchCard = useSearchCard();
 
   const handleChannelRemoval = async (channelId: string) => {
     const response = await YtApiClient.removeUserChannel(channelId);
@@ -47,19 +46,7 @@ const Sidebar = (props: Props) => {
   return (
     <div className="flex flex-col h-full w-full">
       <div className="mx-2 my-2">
-        <Button
-          className="flex w-full px-4 py-2 
-          flex-grow overflow-hidden items-center gap-3 h-11 
-          justify-start 
-          text-sm rounded-md border cursor-pointer border-white/20
-          bg-inherit text-inherit
-          hover:text-white hover:bg-white/10
-          transition-colors duration-200"
-          onClick={() => searchCard.onOpen()}
-        >
-          <Plus className="h-4 w-4" />
-          <div>Add a new channel</div>
-        </Button>
+        <AddChannelButton />
       </div>
       <div className="flex-grow overflow-y-auto mx-2 pb-2 space-y-1">
         {channels.map((channel) => (
