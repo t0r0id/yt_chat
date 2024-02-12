@@ -1,6 +1,7 @@
 import logging
 logger = logging.getLogger(__name__)
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -28,6 +29,9 @@ app = FastAPI(
 
 class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
+        if request.method == 'OPTIONS':
+            response = await call_next(request)
+            return response
        # Check if a session ID is already present in the request headers
         session_id = None
         
@@ -50,10 +54,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
         return response
 
 # Register the middleware
-app.add_middleware(SessionMiddleware)
+origins = os.environ['ALLOWED_ORIGINS'].split(',')
 
-origins = ["*"]
-
+print(origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -61,6 +64,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SessionMiddleware)
+
+
   
 app.include_router(onboard_router, prefix="/onboard", tags=['onboard'])
 app.include_router(chat_router, prefix="/chat", tags=['chat'])

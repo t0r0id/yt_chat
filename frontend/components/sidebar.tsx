@@ -50,9 +50,12 @@ const Sidebar = (props: Props) => {
       <div className="mx-2 my-2">
         <AddChannelButton open={dialougeOpen} setOpen={setDialougeOpen} />
       </div>
-      <div className="flex-grow overflow-y-auto mx-2 pb-2 space-y-1">
+      <div className="flex-grow overflow-y-auto mx-2 pb-2 space-y-1 ">
         {channels.map((channel) => (
-          <div className="relative group" key={channel._id}>
+          <div
+            className="relative group flex items-center justify-between hover:bg-white/10 hover:rounded-lg"
+            key={channel._id}
+          >
             <Link
               href={
                 channel.status === ChannelStatusEnum.ACTIVE
@@ -61,12 +64,12 @@ const Sidebar = (props: Props) => {
               }
               className={cn(
                 `text-md group flex p-3 w-full 
-            justify-start font-medium cursor-pointerrounded-lg`,
+      justify-start font-medium cursor-pointer rounded-lg`,
                 channel.status === ChannelStatusEnum.ACTIVE
-                  ? "hover:text-white hover:bg-white/10 transition-colors duration-200"
+                  ? "hover:text-white transition-colors duration-200"
                   : "opacity-50",
                 pathName.split("/").at(-1) === channel._id
-                  ? "bg-white/10 text-white"
+                  ? "text-white"
                   : "text-inherit"
               )}
             >
@@ -81,10 +84,8 @@ const Sidebar = (props: Props) => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    className="absolute right-1 top-1 p-1
-                              text-inherit space-x-1 bg-inherit
-                              hover:text-red-500
-                              rounded-md group-hover:block"
+                    className="p-1 text-inherit space-x-1 bg-transparent 
+            hover:text-red-500 rounded-md group-hover:block mr-2"
                     onClick={() => handleChannelRemoval(channel._id)}
                   >
                     <Trash2 className="h-3 w-3" />
