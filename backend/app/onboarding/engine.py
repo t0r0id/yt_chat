@@ -33,17 +33,18 @@ async def search_for_channels(query: str, region: Optional[str]='US', limit: Opt
     """
     try:
         channel_list = yt_utils.search_channels(query, region, limit)
-        channels, missing_channel_ids = await get_channels([c['id'] for c in channel_list])
-        if missing_channel_ids:
-            channels += [Channel(id=channel['id'],
+    
+        channels = []
+        if channel_list:
+            channels = [Channel(id=channel['id'],
                                 title=channel['title'],
-                                description=" ".join([s['text'] for s in channel['descriptionSnippet']]),
+                                description=" ".join([s['text'] for s in channel['descriptionSnippet']])
+                                if channel['descriptionSnippet'] else "",
                                 url=channel['link'],
                                 thumbnails=channel['thumbnails'],
                                 status= ChannelStatusEnum.INACTIVE
                                 ) 
                                 for channel in channel_list
-                                if channel['id'] in missing_channel_ids
                         ]
         return channels
     except Exception as e:
