@@ -18,6 +18,7 @@ import useMessages from "@/hooks/useMessage";
 import ConversationComponent from "@/components/ui/ConversationComponent";
 import { BsArrowUpCircle } from "react-icons/bs";
 import ChannelCard from "@/components/channel-card";
+import MobileSidebar from "@/components/mobile-sidebar";
 
 type Props = {
   activeChannel: ChannelType;
@@ -164,6 +165,7 @@ const Page = ({ params }: { params: { id: string } }) => {
           className="border-b relative border-zinc-700 w-full
           flex items-center justify-between py-4"
         >
+          <MobileSidebar />
           <ChannelCard
             title={activeChannel?.title!}
             thumbnail={activeChannel?.thumbnails?.[0]?.url}
