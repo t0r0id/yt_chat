@@ -11,6 +11,8 @@ from uuid import uuid4
 from app.db.db import init_db
 from app.chat.router import chat_router
 from app.onboarding.router import onboard_router
+from app.db.models import User
+from app.onboarding.engine import get_default_channels
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,6 +35,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
         if not request.cookies.get("sessionId"):
             session_id = str(uuid4())
             request.cookies.update({"sessionId": session_id})
+            user = User(id=session_id)
+            user.channels = set([c.id for c in await get_default_channels()])
+            await user.save()
 
         # Call the next middleware or the endpoint
         response = await call_next(request)
@@ -41,7 +46,6 @@ class SessionMiddleware(BaseHTTPMiddleware):
         # For example, you can set a cookie with the session ID
         if session_id:
             response.set_cookie(key="sessionId", value=session_id, max_age=3600*24*365)
-
 
         return response
 

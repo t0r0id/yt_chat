@@ -2,11 +2,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from llama_index import ServiceContext, StorageContext, VectorStoreIndex
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from beanie.odm.operators.find.logical import And
-from beanie.operators import NotIn
+from beanie.operators import In
 from beanie.odm.enums import SortDirection
 
 from app.onboarding.reader import YTChannelReader
@@ -16,7 +16,7 @@ from app.db.models import (
                         ChannelOnBoardingRequest,
                         ChannelOnBoardingRequestStatusEnum,
                         ChannelStatusEnum,
-                        ActiveChatSessionMap
+                        User
                         )
 
 async def search_for_channels(query: str, region: Optional[str]='US', limit: Optional[int]=5) -> List[Channel]:
@@ -33,77 +33,82 @@ async def search_for_channels(query: str, region: Optional[str]='US', limit: Opt
     """
     try:
         channel_list = yt_utils.search_channels(query, region, limit)
-
-        channels = [await get_active_channel(channel['id']) or
-                    Channel(id=channel['id'],
-                            title=channel['title'],
-                            description=" ".join([s['text'] for s in channel['descriptionSnippet']]),
-                            url=channel['link'],
-                            thumbnails=channel['thumbnails'],
-                            status= ChannelStatusEnum.INACTIVE
-                            ) 
-                    for channel in channel_list
-                    ]
+    
+        channels = []
+        if channel_list:
+            channels = [Channel(id=channel['id'],
+                                title=channel['title'],
+                                description=" ".join([s['text'] for s in channel['descriptionSnippet']])
+                                if channel['descriptionSnippet'] else "",
+                                url=channel['link'],
+                                thumbnails=channel['thumbnails'],
+                                status= ChannelStatusEnum.INACTIVE
+                                ) 
+                                for channel in channel_list
+                        ]
         return channels
     except Exception as e:
         logger.error(f"channel search failed for query: {query}", e)
         raise e
     
-async def get_active_channel(channel_id: str) -> Channel:
+async def get_channels(channel_ids: List[str]) -> Tuple[List[Channel], List[str]]:
     """
-    Retrieve an active channel by its ID.
+    Retrieve channels by their IDs.
 
     Args:
-    - channel_id (str): The ID of the channel to retrieve.
+    - channel_ids (List[str]): The IDs of the channels to retrieve.
 
     Returns:
-    - Channel: The active channel with the specified ID.
+    - Tuple[List[Channel], List[str]]: A tuple containing the active channels with the specified IDs and a list of missing channel IDs.
     """
-    return await Channel.find_one(And(Channel.id == channel_id, Channel.status == ChannelStatusEnum.ACTIVE))
+    # Retrieve active channels
+    channels = await Channel.find(In(Channel.id, channel_ids)).to_list()
+    
+    # Find missing channel IDs
+    missing_channel_ids = [channel_id for channel_id in channel_ids if channel_id not in [c.id for c in channels]]
+    
+    return channels, missing_channel_ids
 
-async def get_top_channels(user_session_id: str, limit: int = 5) -> List[Channel]:
+
+async def get_default_channels(limit:int=5) -> List[Channel]:
     """
-    Retrieve the top active channels for the given user session.
+    Retrieve a list of default channels with the given limit.
 
     Args:
-    - user_session_id (str): The ID of the user session.
-    - limit (int): The maximum number of channels to retrieve.
+        limit (int): The maximum number of channels to retrieve.
 
     Returns:
-    - List[Channel]: The list of top active channels.
+        List[Channel]: A list of default channels.
     """
-    # Initialize the list of channels
-    channels = []
-
-    # Retrieve the channel IDs from the active chat session map
-    if user_session_id:
-        channel_ids = [m.channel_id for m in await ActiveChatSessionMap.find(
-            ActiveChatSessionMap.user_session_id == user_session_id,
-            sort=[("updated_at", SortDirection.DESCENDING)]
-        ).to_list()]
-
-        # Remove duplicates and limit the number of channel IDs
-        channel_ids = list(dict.fromkeys(channel_ids))
-        channel_ids = channel_ids[:min(len(channel_ids), limit)]
-
-        # Retrieve the active channels based on the channel IDs
-        channels = [await get_active_channel(channel_id) for channel_id in channel_ids]
-        channels = [channel for channel in channels if channel]
-
-        # Return the channels if the limit is reached
-        if len(channels) >= limit:
-            return channels
-
-    # If the limit is not reached, retrieve additional active channels
-    included_ids = [channel.id for channel in channels]
-    channels += await Channel.find(
-        And(Channel.status == ChannelStatusEnum.ACTIVE,
-        NotIn(Channel.id, included_ids)),
-        limit=limit - len(channels),
+    return await Channel.find(
+        Channel.status == ChannelStatusEnum.ACTIVE,
+        limit=limit,
         sort=[("updated_at", SortDirection.ASCENDING)]
     ).to_list()
 
-    return channels
+async def get_user_channels(user_session_id: str) -> List[Channel]:
+    """
+    Retrieve the channels added by the user.
+
+    Args:
+        user_session_id (str): The ID of the user's session.
+
+    Returns:
+        List[Channel]: A list of Channel objects added by the user.
+    """
+
+    # Check if the user session ID is provided
+    if user_session_id:
+        # Retrieve the user based on the session ID
+        user = await User.get(user_session_id)
+        # If the user exists and has added channels, return the user's channels
+        if user and user.channels:
+            channels, _ = await get_channels(list(user.channels))
+            return channels
+
+    # If no user session ID is provided or the user has not added any channels,
+    # return default channels
+    return await get_default_channels(limit=5)
     
 
 async def create_onboarding_request(channel_id: str, requested_by: str) -> ChannelOnBoardingRequest:
@@ -120,10 +125,30 @@ async def create_onboarding_request(channel_id: str, requested_by: str) -> Chann
 
     # Create a new onboarding request for the specified channel and user
     try:
+        #
+        channel = await Channel.get(channel_id)
+        if not channel:
+            channel_info = yt_utils.get_channel_info(channel_id)
+            channel = Channel(id=channel_info['id'],
+                            title=channel_info['title'],
+                            description=channel_info['description'],
+                            url=channel_info['url'],
+                            thumbnails=channel_info['thumbnails'],
+                            status=ChannelStatusEnum.INACTIVE
+                            )
+            await channel.save()
+            
+        # Add channel to user
+        user = await User.get(requested_by)
+        user.channels.add(channel.id)
+        await user.save()
+
         request = ChannelOnBoardingRequest(
             channel_id=channel_id,
             requested_by=requested_by,
-            status=ChannelOnBoardingRequestStatusEnum.PENDING
+            status=ChannelOnBoardingRequestStatusEnum.PENDING 
+            if channel.status != ChannelStatusEnum.ACTIVE 
+            else ChannelOnBoardingRequestStatusEnum.AUTOCOMPLETED
         )
         # Insert the request into the database
         request = await request.insert()
@@ -147,16 +172,23 @@ async def process_onboarding_request(request: ChannelOnBoardingRequest) -> None:
     try:
         request.status = ChannelOnBoardingRequestStatusEnum.PROCESSING
         await request.save()
+        channel = Channel.get(request.channel_id)
+        if not channel:
+            channel_info = yt_utils.get_channel_info(request.channel_id)
+            channel = Channel(id=channel_info['id'],
+                            title=channel_info['title'],
+                            description=channel_info['description'],
+                            url=channel_info['url'],
+                            thumbnails=channel_info['thumbnails'],
+                            status=ChannelStatusEnum.INACTIVE
+                            )
+            await channel.save()
 
-        channel_info = yt_utils.get_channel_info(request.channel_id)
-        channel = Channel(id=channel_info['id'],
-                        title=channel_info['title'],
-                        description=channel_info['description'],
-                        url=channel_info['url'],
-                        thumbnails=channel_info['thumbnails'],
-                        status=ChannelStatusEnum.INACTIVE
-                        )
-        
+        if channel.status == ChannelStatusEnum.ACTIVE:
+            request.status = ChannelOnBoardingRequestStatusEnum.COMPLETED
+            await request.save()
+            return
+
         # Retrieve documents for the channel
         video_documents = YTChannelReader(channel).load_data(min_duration=60, languages_preference=["en","en-IN"])
         logger.info(f"Retrieved {len(video_documents)} videos with transcripts for channel: {request.channel_id}")

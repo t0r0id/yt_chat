@@ -8,9 +8,11 @@ from sse_starlette.sse import EventSourceResponse
 from beanie.odm.operators.find.logical import And
 from beanie.odm.enums import SortDirection
 from llama_index.core.llms.types import MessageRole
+from app.utils.encoder import UUIDEncoder
 
 from app.db.models import ChatResponse, Chat, ChatResponseStatusEnum, ActiveChatSessionMap
 from app.chat.engine import create_new_chat, get_chat_history, generate_chat_response_stream
+import json
 
 chat_router = APIRouter()
 
@@ -97,10 +99,10 @@ async def chat_history(request: Request, chat_id: str = Body(..., embed=True)) -
         # Raise exception if chat history retrieval fails
         raise HTTPException(status_code=500, detail="chat history retrieval failed")
     
-@chat_router.post("/message_stream/")
+@chat_router.get("/{chat_id}/message_stream/")
 async def message_stream(request: Request,
-                         chat_id: str = Body(..., embed=True),
-                         user_message: str = Body(..., embed=True)) -> EventSourceResponse:
+                         chat_id: str,
+                         user_message: str ) -> EventSourceResponse:
     """
     Endpoint for streaming chat responses.
 
@@ -153,7 +155,8 @@ async def message_stream(request: Request,
             """
             async for delta in stream.async_response_gen():
                 chat_response.content += delta
-                yield chat_response
+                serialised_chat_response = json.dumps(chat_response.dict(), cls=UUIDEncoder)
+                yield serialised_chat_response
             chat_response.status = ChatResponseStatusEnum.COMPLETED
             chat.chat_history.append(ChatResponse(role=MessageRole.USER,
                                                   content=user_message,
@@ -162,7 +165,8 @@ async def message_stream(request: Request,
                                                   )
             chat.chat_history.append(chat_response)
             chat = await chat.save()
-            yield chat_response
+            serialised_chat_response = json.dumps(chat_response.dict(), cls=UUIDEncoder)
+            yield serialised_chat_response
         return EventSourceResponse(stream_response_generator(chat))
     except Exception as e:
         logger.error(f"Failed to generate chat response stream for chat {chat_id}", e)

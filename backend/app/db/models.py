@@ -3,10 +3,10 @@ Pydantic Schemas for the API
 """
 from uuid import UUID, uuid4
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Set
 from enum import Enum
 from pydantic import BaseModel, Field,  HttpUrl, model_validator
-from beanie import Document, Indexed, Link
+from beanie import Document, Indexed
 from llama_index.core.llms.types import MessageRole
 from llama_index.chat_engine.types import ChatMode
 
@@ -28,7 +28,6 @@ class Base(BaseModel):
             setattr(self, field_name, field_value)
         self.updated_at = datetime.now()
 
-
 class ChannelStatusEnum(Enum):
     ACTIVE = 'active'
     INACTIVE = 'inactive'
@@ -43,7 +42,7 @@ class Channel(Document, Base):
     class Settings:
         name = "channels"
 
-class TranscriptSegment(Base):
+class TranscriptSegment(BaseModel):
     text: str = Field(None, description="Transcript text") 
     start_ms: int = Field(None, description="Start time in ms of the transcript")
     end_ms: int = Field(None, description="End time in ms of the transcript")
@@ -52,7 +51,7 @@ class TranscriptSegment(Base):
 class Video(BaseModel):
     id: str = Field(..., description="Unique identifier")
     title: str = Field(None, description="Title of the video")
-    channel: Link[Channel] = Field(None, description="Channel of the video")
+    channel: Channel = Field(None, description="Channel of the video")
     duration: Optional[int] = Field(None, description="Duration of the video in seconds")
     transcript: List[TranscriptSegment] = Field(None, description="Transcript of the video")
 
@@ -63,6 +62,7 @@ class ChannelOnBoardingRequestStatusEnum(Enum):
     PROCESSING = 'processing'
     FAILED = 'failed'
     COMPLETED = 'completed'
+    AUTOCOMPLETED = 'autocompleted'
 
 class ChannelOnBoardingRequest(Document, Base):
     channel_id: str = Field(..., description="Unique YT channel id")
@@ -106,3 +106,10 @@ class ActiveChatSessionMap(Document, Base):
 
     class Settings:
         name = "active_chat_sessions"
+
+class User(Document, Base):
+    id: Indexed(str) = Field(..., description="User or session id")
+    channels: Set[str] = Field(default_factory=set, description="List of added channels")
+
+    class Settings:
+        name = "users"

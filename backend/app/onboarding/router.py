@@ -4,8 +4,17 @@ logger = logging.getLogger(__name__)
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Request, Body
 
-from app.onboarding.engine import create_onboarding_request, process_onboarding_request, search_for_channels, get_top_channels
-from app.db.models import Channel, ChannelOnBoardingRequest, ChannelOnBoardingRequestStatusEnum
+from app.onboarding.engine import (create_onboarding_request,
+                                   process_onboarding_request,
+                                   search_for_channels,
+                                   get_user_channels,
+                                   get_channels
+                                   )
+from app.db.models import (Channel,
+                           ChannelOnBoardingRequest,
+                           ChannelOnBoardingRequestStatusEnum,
+                           User
+                           )
 
 onboard_router = APIRouter()
 
@@ -29,8 +38,8 @@ async def search_channels(query: str
     except Exception as e:
         raise HTTPException(status_code=500, detail="channel search failed")
     
-@onboard_router.post("/channel")
-async def get_channel(request: Request,
+@onboard_router.post("/channel_details/")
+async def channel_details(request: Request,
                      channel_id: str = Body(..., embed=True)) -> Channel:
     """
     Retrieves the channel with the given channel_id if it is active.
@@ -47,36 +56,58 @@ async def get_channel(request: Request,
     """
 
     # Attempt to find the channel with the provided channel_id
-    channel = await Channel.find_one(Channel.id == channel_id)
+    channels, _ = await get_channels([channel_id])
 
     # If the channel exists and is active, return it
-    if channel:
-        return channel
+    if channels:
+        return channels[0]
     else:
         # If the channel is not found or not active, raise an HTTPException
         raise HTTPException(status_code=404, detail=f"Channel {channel_id} not found or not active")
 
-@onboard_router.post("/channels")
-async def get_channels(request: Request, limit: int = 5) -> List[Channel]:
+@onboard_router.post("/user_channels")
+async def user_channels(request: Request) -> List[Channel]:
     """
-    Retrieves the top channels for the user session.
+    Retrieves the added channels for the user session.
 
     Args:
         request (Request): The incoming request.
-        limit (int, optional): The maximum number of channels to retrieve. Defaults to 5.
 
     Returns:
         List[Channel]: The list of top channels.
     """
+    # Get the user session ID from the request cookies
     user_session_id = request.cookies.get('sessionId')
-    channels = await get_top_channels(user_session_id, limit)
 
-    return channels
+    # Return the list of channels
+    return await get_user_channels(user_session_id)
+
+@onboard_router.post("/remove_user_channel")
+async def remove_user_channel(request: Request, channel_id: str = Body(..., embed=True)):
+    """
+    Removes the channel with the given ID from the user's list of channels.
+
+    Args:
+        request (Request): The incoming request.
+        channel_id (str): The ID of the channel to remove.
+
+    Returns:
+        None
+    """
+    # Get the user session ID from the request cookies
+    user_session_id = request.cookies.get('sessionId')
+    # Remove the channel from the user's list of channels
+    user = await User.get(user_session_id)
+    if user and user.channels:
+        user.channels.remove(channel_id)
+        await user.save()
+        return 
+    else:
+        return HTTPException(status_code=404, detail=f"User {user_session_id} not found")
 
 @onboard_router.post("/initiate_request")
 async def initiate_request(request: Request,
-                           channel_id: str= Body(..., embed=True),
-                           requested_by: str= Body(..., embed=True)) -> ChannelOnBoardingRequest:
+                           channel_id: str= Body(..., embed=True)) -> ChannelOnBoardingRequest:
     """
     An asynchronous function to handle the onboarding request for a specific channel.
     
@@ -89,8 +120,10 @@ async def initiate_request(request: Request,
     - A dictionary containing the message, request_id, and channel_id
     """
     #TODO: Restrict access only to logged-in users
+    # Get the user session ID from the request cookies
+    user_session_id = request.cookies.get('sessionId')
     try:
-        return await create_onboarding_request(channel_id, requested_by)
+        return await create_onboarding_request(channel_id, requested_by=user_session_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail="request creation failed")
 
@@ -134,6 +167,4 @@ async def process_request(request: Request,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail="Request processing failed")
-    
-    
     
