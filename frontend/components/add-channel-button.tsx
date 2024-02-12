@@ -34,6 +34,8 @@ const AddChannelButton = ({ open, setOpen }: Props) => {
         })
         .finally(() => {
           setLoading(false);
+          setSelectedChannel(undefined);
+          setChannels([]);
           setOpen(false);
         });
     }
