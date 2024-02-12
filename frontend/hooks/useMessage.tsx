@@ -29,7 +29,6 @@ const useMessages = (channelId: string) => {
       const existingMessageIndex = prevMessages.findIndex(
         (msg) => msg.id === message.id || msg.id === "initial"
       );
-      console.log("existingMessageIndex", existingMessageIndex);
       // Update the existing message
       if (existingMessageIndex > -1) {
         const updatedMessages = [...prevMessages];

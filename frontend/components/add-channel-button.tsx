@@ -12,6 +12,7 @@ import { Plus } from "lucide-react";
 import { ComboBoxItemType, SearchCombobox } from "./search-combobox";
 import { ChannelType } from "@/lib/types/yt";
 import { YtApiClient } from "@/lib/api/yt";
+import { useToast } from "@/components/ui/use-toast";
 
 type Props = {
   open: boolean;
@@ -24,13 +25,24 @@ const AddChannelButton = ({ open, setOpen }: Props) => {
   const [selectedChannel, setSelectedChannel] = useState<string | undefined>(
     undefined
   );
+  const { toast } = useToast();
 
   const handleChannelAddition = async () => {
     if (selectedChannel !== undefined) {
       setLoading(true);
+
       await YtApiClient.initiateOnboardingRequest(selectedChannel)
+        .then(() => {
+          toast({
+            title: "Channel Onboarding Request Submitted",
+            description: "Channel may take upto 6 hours to get activated",
+          });
+        })
         .catch((error) => {
-          console.log("Request creation failed", error);
+          toast({
+            title: "Channel Onboarding Request Failed",
+            description: "Please retry",
+          });
         })
         .finally(() => {
           setLoading(false);
