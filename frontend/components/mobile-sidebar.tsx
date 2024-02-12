@@ -24,7 +24,7 @@ const MobileSidebar = () => {
       </SheetTrigger>
       <SheetContent
         side="left"
-        className="bg-zinc-900 text-zinc-400 border-none p-0 flex w-1/2"
+        className="bg-zinc-900 text-zinc-400 border-none p-0 flex w-5/6 md:w-1/2 lg:w-1/3"
       >
         <Sidebar />
       </SheetContent>
