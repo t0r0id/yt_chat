@@ -126,9 +126,9 @@ async def create_onboarding_request(channel_id: str, requested_by: str) -> Chann
     # Create a new onboarding request for the specified channel and user
     try:
         #
-        channel = await Channel.find(channel_id)
+        channel = await Channel.get(channel_id)
         if not channel:
-            channel_info = yt_utils.get_channel_info(request.channel_id)
+            channel_info = yt_utils.get_channel_info(channel_id)
             channel = Channel(id=channel_info['id'],
                             title=channel_info['title'],
                             description=channel_info['description'],
@@ -139,7 +139,7 @@ async def create_onboarding_request(channel_id: str, requested_by: str) -> Chann
             await channel.save()
             
         # Add channel to user
-        user = await User.get(request.requested_by)
+        user = await User.get(requested_by)
         user.channels.add(channel.id)
         await user.save()
 
