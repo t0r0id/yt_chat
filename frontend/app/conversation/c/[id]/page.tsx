@@ -2,14 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-import { SendHorizonalIcon } from "lucide-react";
-import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ApiClient } from "@/lib/api/conversation";
 
 import {
@@ -20,15 +13,12 @@ import {
   Message,
 } from "@/lib/types/conversation";
 
-import { ChannelType, ThumbnailType } from "@/lib/types/yt";
-import Image from "next/image";
+import { ChannelType } from "@/lib/types/yt";
 import useMessages from "@/hooks/useMessage";
 import ConversationComponent from "@/components/ui/ConversationComponent";
 import { BsArrowUpCircle } from "react-icons/bs";
-
-const formSchema = z.object({
-  message: z.string().min(1, { message: "Please enter a message" }),
-});
+import ChannelCard from "@/components/channel-card";
+import MobileSidebar from "@/components/mobile-sidebar";
 
 type Props = {
   activeChannel: ChannelType;
@@ -44,6 +34,7 @@ const Page = ({ params }: { params: { id: string } }) => {
   const [isMessagePending, setIsMessagePending] = useState(false);
   const { messages, userSendMessage, setMessages, systemSendMessage } =
     useMessages(params.id);
+
   useEffect(() => {
     // Initialising channel and chat
     async function fetchChannelDetails() {
@@ -167,41 +158,32 @@ const Page = ({ params }: { params: { id: string } }) => {
     );
   }
   return (
-    <>
-      <div className="flex flex-col h-[100dvh] bg-zinc-800 items-center">
-        <div className="border-b relative border-zinc-700 px-4 w-full">
-          <div className="flex items-center justify-between py-4 mx-20">
-            <div
-              className="flex items-center cursor-pointer"
-              onClick={() => redirectToYouTube(activeChannel?._id)}
-            >
-              <Image
-                src={activeChannel?.thumbnails?.[0].url.toString()!}
-                alt={activeChannel?.title!}
-                className="h-12 w-12 rounded-full"
-                width={48}
-                height={48}
-              />
-              <div className="ml-2">
-                <h1 className="text-lg font-bold text-white hover:underline ">
-                  {activeChannel?.title}
-                </h1>
-              </div>
-            </div>
-            <div>
-              <Button
-                onClick={resetConversation}
-                className="bg-zinc-700 text-white"
-              >
-                Reset
-              </Button>
-            </div>
-          </div>
+    <div className="w-full h-[100dvh] bg-zinc-800 flex justify-center px-4">
+      <div className="flex flex-col h-full w-full items-center justify-center lg:w-5/6">
+        {/* Topbar */}
+        <div
+          className="border-b relative border-zinc-700 w-full
+          flex items-center justify-between py-4"
+        >
+          <MobileSidebar />
+          <ChannelCard
+            title={activeChannel?.title!}
+            thumbnail={activeChannel?.thumbnails?.[0]?.url}
+          />
+
+          <Button
+            onClick={resetConversation}
+            className="bg-zinc-800 text-inherit border border-zinc-700 shadow-lg"
+          >
+            Reset
+          </Button>
         </div>
-        <div className="flex-grow overflow-y-auto w-full lg:w-5/6">
+        {/* Chat response */}
+        <div className="flex-grow overflow-y-auto w-full">
           <ConversationComponent messages={messages} />
         </div>
-        <div className="w-full lg:w-5/6">
+        {/* Message Form */}
+        <div className="w-full">
           <div className="relative flex h-[90px] w-full items-center ">
             <textarea
               rows={1}
@@ -227,7 +209,7 @@ const Page = ({ params }: { params: { id: string } }) => {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
