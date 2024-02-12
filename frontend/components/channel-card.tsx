@@ -33,7 +33,7 @@ const ChannelCard = ({
       </Avatar>
 
       <div>
-        <div>{title}</div>
+        <div className="line-clamp-1">{title}</div>
         {status === ChannelStatusEnum.INACTIVE && (
           <div className="text-xs text-zinc-400">(Inactive)</div>
         )}

@@ -23,6 +23,7 @@ type Props = {};
 
 const Sidebar = (props: Props) => {
   const [channels, setChannels] = useState<ChannelType[]>([]);
+  const [dialougeOpen, setDialougeOpen] = useState(false);
   const pathName = usePathname();
   useEffect(() => {
     (async () => {
@@ -32,7 +33,7 @@ const Sidebar = (props: Props) => {
         setChannels(channels);
       }
     })();
-  }, []);
+  }, [dialougeOpen]);
 
   const handleChannelRemoval = async (channelId: string) => {
     const response = await YtApiClient.removeUserChannel(channelId);
@@ -47,7 +48,7 @@ const Sidebar = (props: Props) => {
   return (
     <div className="flex flex-col h-full w-full">
       <div className="mx-2 my-2">
-        <AddChannelButton />
+        <AddChannelButton open={dialougeOpen} setOpen={setDialougeOpen} />
       </div>
       <div className="flex-grow overflow-y-auto mx-2 pb-2 space-y-1">
         {channels.map((channel) => (

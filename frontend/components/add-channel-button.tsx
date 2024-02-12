@@ -13,9 +13,12 @@ import { ComboBoxItemType, SearchCombobox } from "./search-combobox";
 import { ChannelType } from "@/lib/types/yt";
 import { YtApiClient } from "@/lib/api/yt";
 
-type Props = {};
+type Props = {
+  open: boolean;
+  setOpen: (isOpen: boolean) => void;
+};
 
-const AddChannelButton = (props: Props) => {
+const AddChannelButton = ({ open, setOpen }: Props) => {
   const [loading, setLoading] = useState(false);
   const [channels, setChannels] = useState<ComboBoxItemType[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<string | undefined>(
@@ -24,16 +27,15 @@ const AddChannelButton = (props: Props) => {
 
   const handleChannelAddition = async () => {
     if (selectedChannel !== undefined) {
-      try {
-        setLoading(true);
-        const response = await YtApiClient.initiateOnboardingRequest(
-          selectedChannel
-        );
-      } catch {
-        console.log("Request creaton failed");
-      } finally {
-        setLoading(false);
-      }
+      setLoading(true);
+      await YtApiClient.initiateOnboardingRequest(selectedChannel)
+        .catch((error) => {
+          console.log("Request creation failed", error);
+        })
+        .finally(() => {
+          setLoading(false);
+          setOpen(false);
+        });
     }
   };
 
@@ -56,7 +58,7 @@ const AddChannelButton = (props: Props) => {
 
   return (
     <>
-      <Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button
             className="flex w-full px-4 py-2 
