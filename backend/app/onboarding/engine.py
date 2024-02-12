@@ -172,7 +172,7 @@ async def process_onboarding_request(request: ChannelOnBoardingRequest) -> None:
     try:
         request.status = ChannelOnBoardingRequestStatusEnum.PROCESSING
         await request.save()
-        channel = Channel.get(request.channel_id)
+        channel = await Channel.get(request.channel_id)
         if not channel:
             channel_info = yt_utils.get_channel_info(request.channel_id)
             channel = Channel(id=channel_info['id'],
