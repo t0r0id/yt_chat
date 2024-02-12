@@ -2,14 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-import { SendHorizonalIcon } from "lucide-react";
-import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ApiClient } from "@/lib/api/conversation";
 
 import {
@@ -20,16 +13,11 @@ import {
   Message,
 } from "@/lib/types/conversation";
 
-import { ChannelType, ThumbnailType } from "@/lib/types/yt";
-import Image from "next/image";
+import { ChannelType } from "@/lib/types/yt";
 import useMessages from "@/hooks/useMessage";
 import ConversationComponent from "@/components/ui/ConversationComponent";
 import { BsArrowUpCircle } from "react-icons/bs";
 import ChannelCard from "@/components/channel-card";
-
-const formSchema = z.object({
-  message: z.string().min(1, { message: "Please enter a message" }),
-});
 
 type Props = {
   activeChannel: ChannelType;
@@ -45,6 +33,7 @@ const Page = ({ params }: { params: { id: string } }) => {
   const [isMessagePending, setIsMessagePending] = useState(false);
   const { messages, userSendMessage, setMessages, systemSendMessage } =
     useMessages(params.id);
+
   useEffect(() => {
     // Initialising channel and chat
     async function fetchChannelDetails() {
@@ -170,6 +159,7 @@ const Page = ({ params }: { params: { id: string } }) => {
   return (
     <div className="w-full h-[100dvh] bg-zinc-800 flex justify-center px-4">
       <div className="flex flex-col h-full w-full items-center justify-center lg:w-5/6">
+        {/* Topbar */}
         <div
           className="border-b relative border-zinc-700 w-full
           flex items-center justify-between py-4"
@@ -186,9 +176,11 @@ const Page = ({ params }: { params: { id: string } }) => {
             Reset
           </Button>
         </div>
+        {/* Chat response */}
         <div className="flex-grow overflow-y-auto w-full">
           <ConversationComponent messages={messages} />
         </div>
+        {/* Message Form */}
         <div className="w-full">
           <div className="relative flex h-[90px] w-full items-center ">
             <textarea
