@@ -1,4 +1,5 @@
-import Sidebar from "@/components/Sidebar";
+import { SearchCardProvider } from "@/components/search-card-provider";
+import Sidebar from "@/components/sidebar";
 import React from "react";
 
 type Props = {
@@ -11,7 +12,10 @@ const DashboardLayout = async ({ children }: Props) => {
       <div className="h-full hidden md:w-[280px] md:flex flex-col flex-shrink-0 bg-zinc-900 min-h-[100dvh]">
         <Sidebar />
       </div>
-      <div className="w-full">{children}</div>
+      <div className="w-full">
+        <SearchCardProvider />
+        {children}
+      </div>
     </div>
   );
 };

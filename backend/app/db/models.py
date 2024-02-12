@@ -42,7 +42,7 @@ class Channel(Document, Base):
     class Settings:
         name = "channels"
 
-class TranscriptSegment(Base):
+class TranscriptSegment(BaseModel):
     text: str = Field(None, description="Transcript text") 
     start_ms: int = Field(None, description="Start time in ms of the transcript")
     end_ms: int = Field(None, description="End time in ms of the transcript")

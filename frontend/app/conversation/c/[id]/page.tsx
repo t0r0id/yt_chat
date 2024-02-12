@@ -64,7 +64,7 @@ const Page = ({ params }: { params: { id: string } }) => {
         const { data: conversationHistory } =
           await ApiClient.getConversationHistory(conversationId);
         setConversation({
-          id: conversationId,
+          _id: conversationId,
           conversationHistory: conversationHistory,
         });
         setMessages(conversationHistory);
@@ -80,7 +80,7 @@ const Page = ({ params }: { params: { id: string } }) => {
     );
     if (conversationId) {
       setConversation({
-        id: conversationId,
+        _id: conversationId,
         conversationHistory: [],
       });
       setMessages([]);
@@ -106,7 +106,7 @@ const Page = ({ params }: { params: { id: string } }) => {
     setUserMessage("");
 
     const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${
-      conversation?.id
+      conversation?._id
     }/message_stream?user_message=${encodeURI(userMessage)}`;
     const events = new EventSource(url);
     events.onmessage = (event: MessageEvent) => {

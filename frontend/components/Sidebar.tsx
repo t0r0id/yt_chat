@@ -9,6 +9,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { ChannelStatusEnum, ChannelType } from "@/lib/types/yt";
 import { YtApiClient } from "@/lib/api/yt";
 import { Button } from "@/components/ui/button";
+import { useSearchCard } from "@/hooks/useSearchCard";
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +31,7 @@ const Sidebar = (props: Props) => {
       }
     })();
   }, []);
+  const searchCard = useSearchCard();
 
   const handleChannelRemoval = async (channelId: string) => {
     const response = await YtApiClient.removeUserChannel(channelId);
@@ -52,6 +54,7 @@ const Sidebar = (props: Props) => {
           bg-inherit text-inherit
           hover:text-white hover:bg-white/10
           transition-colors duration-200"
+          onClick={() => searchCard.onOpen()}
         >
           <Plus className="h-4 w-4" />
           <div>Add a new channel</div>
