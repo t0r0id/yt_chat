@@ -1,13 +1,18 @@
-import { hasBaseId, hasId } from "@/lib/types/common";
-
 export interface ThumbnailType {
   url: URL;
   width: number;
   height: number;
 }
-export interface ChannelType extends hasBaseId {
+
+export enum ChannelStatusEnum {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+}
+export interface ChannelType {
+  _id: string;
   title: string;
   description?: string;
   url?: URL;
   thumbnails?: ThumbnailType[];
+  status: ChannelStatusEnum;
 }

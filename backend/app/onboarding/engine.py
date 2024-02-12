@@ -33,17 +33,18 @@ async def search_for_channels(query: str, region: Optional[str]='US', limit: Opt
     """
     try:
         channel_list = yt_utils.search_channels(query, region, limit)
-        channels, missing_channel_ids = await get_channels([c['id'] for c in channel_list])
-        if missing_channel_ids:
-            channels += [Channel(id=channel['id'],
+    
+        channels = []
+        if channel_list:
+            channels = [Channel(id=channel['id'],
                                 title=channel['title'],
-                                description=" ".join([s['text'] for s in channel['descriptionSnippet']]),
+                                description=" ".join([s['text'] for s in channel['descriptionSnippet']])
+                                if channel['descriptionSnippet'] else "",
                                 url=channel['link'],
                                 thumbnails=channel['thumbnails'],
                                 status= ChannelStatusEnum.INACTIVE
                                 ) 
                                 for channel in channel_list
-                                if channel['id'] in missing_channel_ids
                         ]
         return channels
     except Exception as e:
@@ -125,9 +126,9 @@ async def create_onboarding_request(channel_id: str, requested_by: str) -> Chann
     # Create a new onboarding request for the specified channel and user
     try:
         #
-        channel = await Channel.find(channel_id)
+        channel = await Channel.get(channel_id)
         if not channel:
-            channel_info = yt_utils.get_channel_info(request.channel_id)
+            channel_info = yt_utils.get_channel_info(channel_id)
             channel = Channel(id=channel_info['id'],
                             title=channel_info['title'],
                             description=channel_info['description'],
@@ -138,7 +139,7 @@ async def create_onboarding_request(channel_id: str, requested_by: str) -> Chann
             await channel.save()
             
         # Add channel to user
-        user = await User.get(request.requested_by)
+        user = await User.get(requested_by)
         user.channels.add(channel.id)
         await user.save()
 
