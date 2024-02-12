@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import AddChannelButton from "./add-channel-button";
+import ChannelCard from "./channel-card";
 
 type Props = {};
 
@@ -68,23 +69,11 @@ const Sidebar = (props: Props) => {
                   : "text-inherit"
               )}
             >
-              <div className="flex items-center flex-1 gap-2">
-                <Avatar>
-                  <AvatarImage
-                    src={channel.thumbnails?.[0]?.url?.toString()}
-                    alt={channel.title + " thumbnail"}
-                    className="h-12 w-12 rounded-full"
-                  />
-                  <AvatarFallback>YT</AvatarFallback>
-                </Avatar>
-
-                <div>
-                  <div>{channel.title}</div>
-                  {channel.status === ChannelStatusEnum.INACTIVE && (
-                    <div className="text-xs text-zinc-400">(Inactive)</div>
-                  )}
-                </div>
-              </div>
+              <ChannelCard
+                title={channel.title}
+                thumbnail={channel.thumbnails?.[0]?.url}
+                status={channel.status}
+              />
             </Link>
 
             <TooltipProvider delayDuration={200}>
